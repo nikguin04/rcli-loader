@@ -1,14 +1,14 @@
-use std::{sync::{Arc, Mutex}, thread, time::Duration};
+use std::{sync::{Arc, RwLock}, thread, time::Duration};
 
 use crate::loading_element::LoadingElement;
 
 
 
-pub fn sim_load(loading_element: Arc<Mutex<LoadingElement>>, delay: u64) {
+pub fn sim_load(loading_element: Arc<RwLock<LoadingElement>>, delay: u64) {
     thread::spawn(move || {
-        let max: usize = loading_element.lock().unwrap().get_max();
+        let max: usize = loading_element.read().unwrap().get_max();
         for _i in 0..max {
-            loading_element.lock().unwrap().update(1);
+            loading_element.write().unwrap().update(1);
             thread::sleep(Duration::from_millis(delay));
         }
     });

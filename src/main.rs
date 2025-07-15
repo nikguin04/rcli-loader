@@ -1,4 +1,4 @@
-use std::{sync::{Arc, Mutex}, thread, time};
+use std::{sync::{Arc, RwLock}, thread, time};
 
 use crate::{example_load::sim_load, loading_drawer::LoadingDrawer, loading_element::LoadingElement};
 mod terminal_helper;
@@ -9,9 +9,9 @@ mod example_load;
 fn main() {
     let mut ld: LoadingDrawer = LoadingDrawer::new();
 
-    let le1= Arc::from(Mutex::from(LoadingElement::new(100)));
-    let le2= Arc::from(Mutex::from(LoadingElement::new(300)));
-    let le3= Arc::from(Mutex::from(LoadingElement::new(1000)));
+    let le1= Arc::from(RwLock::from(LoadingElement::new(100)));
+    let le2= Arc::from(RwLock::from(LoadingElement::new(300)));
+    let le3= Arc::from(RwLock::from(LoadingElement::new(1000)));
 
     ld.add_loading_element(le1.clone());
     ld.add_loading_element(le2.clone());

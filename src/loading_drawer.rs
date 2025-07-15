@@ -1,4 +1,4 @@
-use std::{io::Write, sync::{Arc, Mutex}, vec::Vec};
+use std::{io::Write, sync::{Arc, RwLock}, vec::Vec};
 
 use crate::{loading_element::LoadingElement, terminal_helper::{get_terminal_size, C2U16}};
 
@@ -6,7 +6,7 @@ const PROGRESS_CHARS_COUNT: u8 = 8;
 static PROGRESS_CHARS: &'static [char] = &['\u{258F}', '\u{258E}', '\u{258D}', '\u{258C}', '\u{258B}', '\u{258A}', '\u{2589}', '\u{2588}'];
 
 pub struct LoadingDrawer {
-    list: Vec<Arc<Mutex<LoadingElement>>> // TODO: Defenitely make this a RWlock, not a mutex, since reading would block any actual progress about to be made
+    list: Vec<Arc<RwLock<LoadingElement>>>
 }
 impl LoadingDrawer {
     pub fn new() -> LoadingDrawer {
@@ -15,7 +15,7 @@ impl LoadingDrawer {
             list: (Vec::new())
         }
     }
-    pub fn add_loading_element(&mut self, l_elem: Arc<Mutex<LoadingElement>>) {
+    pub fn add_loading_element(&mut self, l_elem: Arc<RwLock<LoadingElement>>) {
         self.list.push(l_elem);
     }
 
@@ -26,7 +26,7 @@ impl LoadingDrawer {
             print!("\x1B[{line};{column}H", line=i+1, column=0);
             let mut unused_char_count: usize = sz.x as usize; // Defines as usize, as all of the string.len() returns usize, so no bulky conversions later
 
-            let elem_l = elem.lock().unwrap();
+            let elem_l = elem.read().unwrap();
             let progress: usize = elem_l.get_progress();
             let max: usize = elem_l.get_max();
             let progress_chunks_str: String = format!("{}/{}", progress, max);
