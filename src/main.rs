@@ -1,10 +1,10 @@
 use std::{sync::{Arc, RwLock}, thread, time};
 
-use crate::{example_load::sim_load, loading_drawer::LoadingDrawer, loading_element::LoadingElement};
 mod terminal_helper;
 mod loading_element;
 mod loading_drawer;
-mod example_load;
+mod examples;
+use crate::{examples::example_load::sim_load, loading_drawer::LoadingDrawer, loading_element::LoadingElement};
 
 fn main() {
     let mut ld: LoadingDrawer = LoadingDrawer::new();
