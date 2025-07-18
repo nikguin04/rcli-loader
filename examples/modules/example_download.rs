@@ -1,10 +1,10 @@
 use std::{io::{Write}, sync::{Arc, RwLock}, thread, time::Duration};
 
 
+use rcli_loader::loading_element::LoadingElement;
 use reqwest::Client;
 use tokio::task::JoinHandle;
 
-use crate::loading_element::LoadingElement;
 
 
 

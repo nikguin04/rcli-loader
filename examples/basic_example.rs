@@ -1,12 +1,11 @@
 use std::{sync::{Arc, RwLock}, time::{self, Duration}};
 
-mod terminal_helper;
-mod loading_element;
-mod loading_drawer;
-mod examples;
+
+mod modules;
+use rcli_loader::{loading_drawer::LoadingDrawer, loading_element::LoadingElement};
 use tokio::time::sleep;
 
-use crate::{examples::{example_download::sim_download, example_load::sim_load}, loading_drawer::LoadingDrawer, loading_element::LoadingElement};
+use crate::modules::{example_download::sim_download, example_load::sim_load};
 
 #[tokio::main]
 async fn main() {

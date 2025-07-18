@@ -1,6 +1,6 @@
 use std::{sync::{Arc, RwLock}, thread, time::Duration};
 
-use crate::loading_element::LoadingElement;
+use rcli_loader::loading_element::LoadingElement;
 
 
 
