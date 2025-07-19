@@ -26,16 +26,26 @@ impl LoadingDrawer {
             print!("\x1B[{line};{column}H", line=i+1, column=0);
             let mut unused_char_count: usize = sz.x as usize; // Defines as usize, as all of the string.len() returns usize, so no bulky conversions later
 
+            // All work on element to release read lock quickly
             let elem_l = elem.read().unwrap();
             let progress: usize = elem_l.get_progress();
             let max: usize = elem_l.get_max();
-            let progress_chunks_str: String = format!("{}/{}", progress, max);
+            let decimal_progress: f32 = elem_l.get_progress_decimal() as f32; // No reason to store and work on f64, since we do not need that precision here
+            let name: Arc<Box<str>> = elem_l.get_name();
+            
+            // PRINT NAME
+            let name_str: String = format!("{}: ", name);
+            print!("{}", name_str);
+            unused_char_count -= name.len();
+
+            // PRINT PROGRESS
+            let progress_chunks_str: String = format!("{}/{} ", progress, max);
             print!("{}", progress_chunks_str);
             unused_char_count -= progress_chunks_str.len();
 
 
+            // PRINT PROGRESS CHAR BLOCKS
             // After everything has been printed, except for the block char loading
-            let decimal_progress: f32 = elem_l.get_progress_decimal() as f32; // No reason to store and work on f64, since we do not need that precision here
             let pct_per_char: f32 = 1.0 / unused_char_count as f32;
             let endchar: char = PROGRESS_CHARS[ ( (decimal_progress%pct_per_char) / pct_per_char * PROGRESS_CHARS_COUNT as f32 ) as usize ];
             let fillchar_len: usize = (decimal_progress / pct_per_char) as usize;

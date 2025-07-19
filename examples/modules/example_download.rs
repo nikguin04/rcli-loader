@@ -13,7 +13,11 @@ pub fn sim_download(loading_element: Arc<RwLock<LoadingElement>>) -> JoinHandle<
         let url = "https://download.blender.org/demo/movies/BBB/bbb_sunflower_1080p_60fps_normal.mp4.zip"; // We <3 Big Buck Bunny... and their upload speeds ;) - (355019001 bytes - 355.02 megabytes)
 
         let client = Client::new();
-        let mut response = client.get(url).send().await.unwrap();
+        let mut response = match client.get(url).send().await {
+            Ok(res) => res,
+            Err(error) => { print!("Error creating request"); return } // TODO: Do a proper callback here. Perhaps make loader able to display ERROR instead of loading bar if not cleared?
+        };
+        
 
         let total_size = response
             .content_length()
