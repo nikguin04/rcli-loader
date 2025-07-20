@@ -33,19 +33,20 @@ impl LoadingDrawer {
             let decimal_progress: f32 = elem_l.get_progress_decimal() as f32; // No reason to store and work on f64, since we do not need that precision here
             let name: Arc<Box<str>> = elem_l.get_name();
             
-            // PRINT NAME
+            // Prepare strings to be printed
+            let progress_chunks_str: String = format!("{}/{} ", elem_l.format_progress_unit(progress), elem_l.format_progress_unit(max)); // Format the progress first, so we can release elem_l
             let name_str: String = format!("{}: ", name);
-            print!("{}", name_str);
-            unused_char_count -= name.len();
 
-            // PRINT PROGRESS
-            let progress_chunks_str: String = format!("{}/{} ", progress, max);
+            
+            // Printout before char loading block
+            print!("{}", name_str);
             print!("{}", progress_chunks_str);
+            
+            // Update unused character count accorind to everyting printed, and what we expect to print (excpet for block char loading) 
+            unused_char_count -= name.len();
             unused_char_count -= progress_chunks_str.len();
 
-
-            // PRINT PROGRESS CHAR BLOCKS
-            // After everything has been printed, except for the block char loading
+            // Print progress chat blocks, after everything has been printed, except for the block char loading
             let pct_per_char: f32 = 1.0 / unused_char_count as f32;
             let endchar: char = PROGRESS_CHARS[ ( (decimal_progress%pct_per_char) / pct_per_char * PROGRESS_CHARS_COUNT as f32 ) as usize ];
             let fillchar_len: usize = (decimal_progress / pct_per_char) as usize;

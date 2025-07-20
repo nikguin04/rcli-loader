@@ -14,7 +14,8 @@ async fn main() {
     let le1= Arc::from(RwLock::from(LoadingElement::new(100, Box::from("Loader 1"), None )));
     let le2= Arc::from(RwLock::from(LoadingElement::new(300, Box::from("Loader 2"), None )));
     let le3= Arc::from(RwLock::from(LoadingElement::new(1000, Box::from("Loader 123"), None )));
-    let le4= Arc::from(RwLock::from(LoadingElement::new(0, Box::from("Big Buck Bunny"), Some(Arc::from(convert_byte)) ))); // TODO: make defaulting max values
+    let convert_function: fn(usize) -> Box<str> = convert_byte;
+    let le4= Arc::from(RwLock::from(LoadingElement::new(0, Box::from("Big Buck Bunny"), Some(convert_function) ))); // TODO: make defaulting max values
 
     ld.add_loading_element(le1.clone());
     ld.add_loading_element(le2.clone());
@@ -35,6 +36,6 @@ async fn main() {
     //get_terminal_size();
 }
 
-fn convert_byte(value: usize) -> Arc<str> {
-    Arc::from(format_size(value, DECIMAL))
+fn convert_byte(value: usize) -> Box<str> {
+    Box::from(format_size(value, DECIMAL))
 }
