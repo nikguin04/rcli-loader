@@ -1,5 +1,5 @@
 use std::{sync::{Arc, RwLock}, time::{self, Duration}};
-
+use humansize::{format_size, DECIMAL};
 
 mod modules;
 use rcli_loader::{loading_drawer::LoadingDrawer, loading_element::LoadingElement};
@@ -11,10 +11,10 @@ use crate::modules::{example_download::sim_download, example_load::sim_load};
 async fn main() {
     let mut ld: LoadingDrawer = LoadingDrawer::new();
 
-    let le1= Arc::from(RwLock::from(LoadingElement::new(100, Box::from("Loader 1"))));
-    let le2= Arc::from(RwLock::from(LoadingElement::new(300, Box::from("Loader 2"))));
-    let le3= Arc::from(RwLock::from(LoadingElement::new(1000, Box::from("Loader 123"))));
-    let le4= Arc::from(RwLock::from(LoadingElement::new(0, Box::from("Big Buck Bunny")))); // TODO: make defaulting max values
+    let le1= Arc::from(RwLock::from(LoadingElement::new(100, Box::from("Loader 1"), None )));
+    let le2= Arc::from(RwLock::from(LoadingElement::new(300, Box::from("Loader 2"), None )));
+    let le3= Arc::from(RwLock::from(LoadingElement::new(1000, Box::from("Loader 123"), None )));
+    let le4= Arc::from(RwLock::from(LoadingElement::new(0, Box::from("Big Buck Bunny"), Some(convert_byte) ))); // TODO: make defaulting max values
 
     ld.add_loading_element(le1.clone());
     ld.add_loading_element(le2.clone());
@@ -33,4 +33,8 @@ async fn main() {
     }
 
     //get_terminal_size();
+}
+
+fn convert_byte(value: usize) -> Arc<str> {
+    format_size(value, DECIMAL)
 }
