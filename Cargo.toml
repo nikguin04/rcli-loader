@@ -3,9 +3,21 @@ name = "rcli-loader"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+path = "src/lib.rs"
+crate-type = ["lib"]
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 reqwest = "0.12.22"
 terminal_size = "0.4.2"
-tokio = { version = "1.46.1", features = ["full"] }
+tokio = { version = "1.46.1", features = ["full"], optional = true }
+
+[features]
+e_tokio = ["dep:tokio"]
+
+
+[[example]]
+name = "basic_example"
+required-features = ["e_tokio"]
