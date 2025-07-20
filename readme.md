@@ -90,10 +90,14 @@ More info coming soon
 
 
 ### Installation-->
-Proper install instructions coming soon. This is a very barebones rust project, so just a cloning and compiling will work:
+
+#### Running example
 1. git clone https://github.com/nikguin04/rcli-loader.git
 2. cd rcli-loader
-3. cargo run --bin rcli-loader
+3. cargo run --example basic_example --all-feature
+
+#### Implementing library
+Coming soon
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
