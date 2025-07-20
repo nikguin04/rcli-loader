@@ -1,14 +1,14 @@
 use std::sync::Arc;
 
-pub struct LoadingElement<'a> {
+pub struct LoadingElement {
     max: usize,
     progress: usize,
     name: Arc<Box<str>>, // TODO: make sure that Arc is the proper use for single write multiple read
-    formatter: Option<&'a dyn Fn(usize) -> Arc<str>>,
+    formatter: Option<Arc<dyn Fn(usize) -> Arc<str>>>,
 }
-impl LoadingElement<'_> {
+impl LoadingElement {
     // New functions
-    pub fn new(max: usize, name: Box<str>, formatter: Option<&dyn Fn(usize) -> Arc<str>>) -> LoadingElement {
+    pub fn new(max: usize, name: Box<str>, formatter: Option<Arc<dyn Fn(usize) -> Arc<str>>>) -> LoadingElement {
         LoadingElement { max: (max), progress: (0), name: (Arc::new(name)), formatter: (formatter) }
     }
     // pub fn empty() -> LoadingElement {
