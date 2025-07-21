@@ -57,19 +57,19 @@ impl LoadingDrawer {
             unused_char_count -= name.len();
             unused_char_count -= progress_chunks_str.len();
 
-            // Print progress chat blocks, after everything has been printed, except for the block char loading
+            // Print progress char blocks, after everything has been printed, except for the block char loading
             let pct_per_char: f32 = 1.0 / unused_char_count as f32;
             let endchar: char = PROGRESS_CHARS[ ( (decimal_progress%pct_per_char) / pct_per_char * PROGRESS_CHARS_COUNT as f32 ) as usize ];
             let fillchar_len: usize = (decimal_progress / pct_per_char) as usize;
             match (&self.color_scheme) {
-                None => println!("{endchar:\u{2588}>fillchar_len$}", endchar = endchar, fillchar_len = fillchar_len ),
+                None => print!("{endchar:\u{2588}>fillchar_len$}", endchar = endchar, fillchar_len = fillchar_len ),
                 Some(x) => print!("{col_start}{endchar:\u{2588}>fillchar_len$}\x1b[0m",  endchar = endchar, fillchar_len = fillchar_len, col_start = x.get_char_block_color(&elem_l))
             }
             
             
 
 
-            print!("\x1B[0K"); // Erase from cursor to end of line
+            //print!("\x1B[0K"); // Erase from cursor to end of line (Only necessary when whole line is not written!)
             std::io::stdout().flush().unwrap(); // Flush all commands, since no new line is written
         }
     }
