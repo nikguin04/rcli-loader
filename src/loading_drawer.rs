@@ -1,18 +1,26 @@
-use std::{io::Write, sync::{Arc, RwLock}, vec::Vec};
+use std::{io::Write, sync::{Arc, RwLock}, vec::{self, Vec}};
 
-use crate::{loading_element::LoadingElement, terminal_helper::{get_terminal_size, C2U16}};
+use crate::{drawer_helper::LoadingColorScheme, loading_element::LoadingElement, terminal_helper::{get_terminal_size, C2U16}};
 
 const PROGRESS_CHARS_COUNT: u8 = 8;
 static PROGRESS_CHARS: &'static [char] = &['\u{258F}', '\u{258E}', '\u{258D}', '\u{258C}', '\u{258B}', '\u{258A}', '\u{2589}', '\u{2588}'];
 
 pub struct LoadingDrawer {
-    list: Vec<Arc<RwLock<LoadingElement>>>
+    list: Vec<Arc<RwLock<LoadingElement>>>,
+    color_scheme: Option<Box<dyn LoadingColorScheme>>
 }
 impl LoadingDrawer {
     pub fn new() -> LoadingDrawer {
         println!("\x1B[2J"); // Erase entire screen - Might be unnecessary for this new(), but nice for testing right now
         LoadingDrawer { 
-            list: (Vec::new())
+            list: (Vec::new()),
+            color_scheme: None
+        }
+    }
+    pub fn new_custom(color_scheme: Box<dyn LoadingColorScheme>) -> LoadingDrawer {
+        LoadingDrawer {
+            list: (Vec::new()),
+            color_scheme: Some(color_scheme)
         }
     }
     pub fn add_loading_element(&mut self, l_elem: Arc<RwLock<LoadingElement>>) {
@@ -34,13 +42,16 @@ impl LoadingDrawer {
             let name: Arc<Box<str>> = elem_l.get_name();
             
             // Prepare strings to be printed
-            let progress_chunks_str: String = format!("{}/{} ", elem_l.format_progress_unit(progress), elem_l.format_progress_unit(max)); // Format the progress first, so we can release elem_l
+            let progress_chunks_str: String = format!("{progress}/{max} ", // Format the progress first, so we can release elem_l
+                    progress=elem_l.format_progress_unit(progress),
+                    max=elem_l.format_progress_unit(max)); 
             let name_str: String = format!("{}: ", name);
 
             
             // Printout before char loading block
             print!("{}", name_str);
-            print!("{}", progress_chunks_str);
+            print!("{progress}", progress = progress_chunks_str);
+            
             
             // Update unused character count accorind to everyting printed, and what we expect to print (excpet for block char loading) 
             unused_char_count -= name.len();
@@ -50,7 +61,11 @@ impl LoadingDrawer {
             let pct_per_char: f32 = 1.0 / unused_char_count as f32;
             let endchar: char = PROGRESS_CHARS[ ( (decimal_progress%pct_per_char) / pct_per_char * PROGRESS_CHARS_COUNT as f32 ) as usize ];
             let fillchar_len: usize = (decimal_progress / pct_per_char) as usize;
-            println!("{endchar:\u{2588}>fillchar_len$}", endchar = endchar, fillchar_len = fillchar_len ); //
+            match (&self.color_scheme) {
+                None => println!("{endchar:\u{2588}>fillchar_len$}", endchar = endchar, fillchar_len = fillchar_len ),
+                Some(x) => print!("{col_start}{endchar:\u{2588}>fillchar_len$}\x1b[0m",  endchar = endchar, fillchar_len = fillchar_len, col_start = x.get_char_block_color(&elem_l))
+            }
+            
             
 
 

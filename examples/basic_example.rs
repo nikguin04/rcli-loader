@@ -2,14 +2,14 @@ use std::{sync::{Arc, RwLock}, time::{self, Duration}};
 use humansize::{format_size, DECIMAL};
 
 mod modules;
-use rcli_loader::{loading_drawer::LoadingDrawer, loading_element::LoadingElement};
+use rcli_loader::{drawer_helper::RedGreenScheme, loading_drawer::LoadingDrawer, loading_element::LoadingElement};
 use tokio::time::sleep;
 
 use crate::modules::{example_download::sim_download, example_load::sim_load};
 
 #[tokio::main]
 async fn main() {
-    let mut ld: LoadingDrawer = LoadingDrawer::new();
+    let mut ld: LoadingDrawer = LoadingDrawer::new_custom(Box::from(RedGreenScheme {}));
 
     let le1= Arc::from(RwLock::from(LoadingElement::new(100, Box::from("Loader 1"), None )));
     let le2= Arc::from(RwLock::from(LoadingElement::new(300, Box::from("Loader 2"), None )));
@@ -25,7 +25,7 @@ async fn main() {
     sim_load(le1.clone(), 50);
     sim_load(le2.clone(), 25);
     sim_load(le3.clone(), 100);
-    sim_download(le4.clone());
+    //sim_download(le4.clone());
 
     println!("Starting loop");
     for _i in 0..600 {
