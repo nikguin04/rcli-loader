@@ -2,14 +2,14 @@ use std::{sync::{Arc, RwLock}, time::{self, Duration}};
 use humansize::{format_size, DECIMAL};
 
 mod modules;
-use rcli_loader::{drawer_helper::RedGreenScheme, loading_drawer::LoadingDrawer, loading_element::LoadingElement};
+use rcli_loader::{drawer_helper::RedGreenScheme, loading_drawer::{add_loading_element, draw_at_top, set_colorscheme}, loading_element::LoadingElement};
 use tokio::time::sleep;
 
 use crate::modules::{example_download::sim_download, example_load::sim_load};
 
 #[tokio::main]
 async fn main() {
-    let mut ld: LoadingDrawer = LoadingDrawer::new_custom(Box::from(RedGreenScheme {}));
+    set_colorscheme(Box::from(RedGreenScheme {}));
 
     let le1= Arc::from(RwLock::from(LoadingElement::new(100, Box::from("Loader 1"), None )));
     let le2= Arc::from(RwLock::from(LoadingElement::new(300, Box::from("Loader 2"), None )));
@@ -17,10 +17,10 @@ async fn main() {
     let convert_function: fn(usize) -> Box<str> = convert_byte;
     let le4= Arc::from(RwLock::from(LoadingElement::new(0, Box::from("Big Buck Bunny"), Some(convert_function) ))); // TODO: make defaulting max values
 
-    ld.add_loading_element(le1.clone());
-    ld.add_loading_element(le2.clone());
-    ld.add_loading_element(le3.clone());
-    ld.add_loading_element(le4.clone());
+    add_loading_element(le1.clone());
+    add_loading_element(le2.clone());
+    add_loading_element(le3.clone());
+    add_loading_element(le4.clone());
 
     sim_load(le1.clone(), 50);
     sim_load(le2.clone(), 25);
@@ -29,7 +29,7 @@ async fn main() {
 
     println!("Starting loop");
     for _i in 0..600 {
-        ld.draw_at_top();
+        draw_at_top();
         sleep(Duration::from_millis(100)).await;
     }
 
