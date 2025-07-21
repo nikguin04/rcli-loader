@@ -34,7 +34,11 @@ pub fn add_loading_element(l_elem: Arc<RwLock<LoadingElement>>) {
     get_loading_drawer().list.push(l_elem);
 }
 pub fn draw_at_top() {
-    let sz: C2U16 = get_terminal_size().unwrap(); // TODO: Implement panic handler for drawing at upper function
+    let sz: C2U16 = match get_terminal_size() { // TODO: Implement panic handler for drawing at upper function
+        Ok(res) => res,
+        //Err(_) => { println!("Failed to get terminal size"); return; } // TODO: do a proper print here when implemented
+        Err(_) => C2U16 { x: (70), y: (16) }
+    };
     let drawer = get_loading_drawer();
     for (i, elem) in drawer.list.iter().enumerate() {
         print!("\x1B[{line};{column}H", line=i+1, column=0);
@@ -60,7 +64,7 @@ pub fn draw_at_top() {
         
         
         // Update unused character count accorind to everyting printed, and what we expect to print (excpet for block char loading) 
-        unused_char_count -= name.len();
+        unused_char_count -= name.len(); // TODO: Error (attempt to subtract with overflow), if screen is not big enough
         unused_char_count -= progress_chunks_str.len();
 
         // Print progress char blocks, after everything has been printed, except for the block char loading
