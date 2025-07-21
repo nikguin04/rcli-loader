@@ -12,4 +12,12 @@ impl LoadingColorScheme for RedGreenScheme {
     }
 }
 
+pub struct BlueScheme {}
+impl LoadingColorScheme for BlueScheme {
+    fn get_char_block_color(&self, _l_elem: &LoadingElement) -> Box<str> {
+        Box::from(format!("\x1b[38;2;{r};{g};{b}m", r=0, g=0, b=255)) // Returns 24 bit color
+    }
+}
+
+
 
