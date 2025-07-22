@@ -29,6 +29,12 @@ pub fn set_colorscheme(color_scheme: Box<dyn LoadingColorScheme + Send + Sync>) 
 pub fn erase_screen() { // Usually to be used at init
     println!("\x1B[2J");
 }
+pub fn hide_cursor() { // Implementation specific for consoles, might not work
+    println!("\x1b[?25l");
+}
+pub fn show_cursor() { // Implementation specific for consoles, might not work
+    println!("\x1b[?25h");
+}
 
 pub fn add_loading_element(l_elem: Arc<RwLock<LoadingElement>>) {
     get_loading_drawer().list.push(l_elem);

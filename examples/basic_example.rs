@@ -2,13 +2,15 @@ use std::{sync::{Arc, RwLock}, time::{self, Duration}};
 use humansize::{format_size, DECIMAL};
 
 mod modules;
-use rcli_loader::{drawer_helper::RedGreenScheme, loading_drawer::{add_loading_element, draw_at_top, set_colorscheme}, loading_element::LoadingElement};
+use rcli_loader::{drawer_helper::RedGreenScheme, loading_drawer::{add_loading_element, draw_at_top, erase_screen, hide_cursor, set_colorscheme}, loading_element::LoadingElement};
 use tokio::time::sleep;
 
 use crate::modules::{example_download::sim_download, example_load::sim_load};
 
 #[tokio::main]
 async fn main() {
+    erase_screen();
+    hide_cursor();
     set_colorscheme(Box::from(RedGreenScheme {}));
 
     let le1= Arc::from(RwLock::from(LoadingElement::new(100, Box::from("Loader 1"), None )));
