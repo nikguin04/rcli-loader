@@ -15,3 +15,12 @@ pub fn get_terminal_size() -> C2U16 { //Result<C2U16, &'static str> { - Temporar
     }
 
 }
+
+pub fn get_line_count(count_str: &String) -> usize { // Line count is equal to both the newline characters, and the amount of wrapping lines (one "line" can wrap multiple times)
+    let ts: C2U16 = get_terminal_size();
+    let mut count: usize = 0;
+    count_str.lines().for_each(|line: &str| {
+        count += 1 + line.len() / ts.x as usize;
+    });
+    return count;
+}

@@ -1,7 +1,7 @@
 use std::{io::{stdout, BufWriter, Stdout, Write}, sync::{Arc, Mutex, MutexGuard, OnceLock, RwLock}, vec::Vec};
 
 
-use crate::{drawer_helper::LoadingColorScheme, loading_element::LoadingElement, terminal_helper::{get_terminal_size, C2U16}};
+use crate::{drawer_helper::LoadingColorScheme, loading_element::LoadingElement, terminal_helper::{get_line_count, get_terminal_size, C2U16}};
 
 const PROGRESS_CHARS_COUNT: u8 = 8;
 static PROGRESS_CHARS: &'static [char] = &['\u{258F}', '\u{258E}', '\u{258D}', '\u{258C}', '\u{258B}', '\u{258A}', '\u{2589}', '\u{2588}'];
@@ -49,7 +49,7 @@ pub fn add_loading_element(l_elem: Arc<RwLock<LoadingElement>>) {
 
 
 pub fn rcli_print(print_str: &String) { // TODO: Currently hardcoded for bottom position, make for top aswell
-    let line_count: usize = print_str.lines().count();
+    let line_count: usize = get_line_count(print_str);
     let tsize: C2U16 = get_terminal_size();
     let drawer: MutexGuard<'static, LoadingDrawer> = get_loading_drawer();
     let mut writer: MutexGuard<'_, BufWriter<Stdout>> = drawer.writer.lock().unwrap();

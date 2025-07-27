@@ -2,7 +2,7 @@ use std::{sync::{Arc, RwLock}, time::{self, Duration}};
 use humansize::{format_size, DECIMAL};
 
 mod modules;
-use rcli_loader::{drawer_helper::RedGreenScheme, loading_drawer::{add_loading_element, draw_loader, erase_screen, hide_cursor, rcli_print, set_colorscheme, Position}, loading_element::LoadingElement};
+use rcli_loader::{drawer_helper::RedGreenScheme, loading_drawer::{add_loading_element, draw_loader, enable_scrollback_buffer, erase_screen, hide_cursor, rcli_print, set_colorscheme, Position}, loading_element::LoadingElement};
 use tokio::time::sleep;
 
 use crate::modules::{example_download::sim_download, example_load::sim_load};
@@ -12,6 +12,7 @@ async fn main() {
     erase_screen();
     hide_cursor();
     set_colorscheme(Box::from(RedGreenScheme {}));
+    enable_scrollback_buffer(true);
 
     let le1= Arc::from(RwLock::from(LoadingElement::new(100, Box::from("Loader 1"), None )));
     let le2= Arc::from(RwLock::from(LoadingElement::new(300, Box::from("Loader 2"), None )));
@@ -31,9 +32,9 @@ async fn main() {
 
     //println!("Starting loop");
     for _i in 0..600 {
-        rcli_print(&format!("Printing some semi long line with an index: {}\nHere is the next line of my print statement!", _i));
+        if _i % 20 == 0 { rcli_print(&format!("Printing some semi long line with an index: {}\nHere is the next line of my print statement! This line will most likely wrap around the next line since it is so long, if not, then: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. ", _i)) };
         draw_loader(Position::BOTTOM);
-        sleep(Duration::from_millis(1000)).await;
+        sleep(Duration::from_millis(100)).await;
     }
 }
 
