@@ -1,4 +1,4 @@
-use std::{io::Write, sync::{Arc, Mutex, MutexGuard, OnceLock, RwLock}, vec::{Vec}};
+use std::{io::{stdout, BufWriter, Stdout, Write}, sync::{Arc, Mutex, MutexGuard, OnceLock, RwLock}, vec::Vec};
 
 
 use crate::{drawer_helper::LoadingColorScheme, loading_element::LoadingElement, terminal_helper::{get_terminal_size, C2U16}};
@@ -10,7 +10,8 @@ static _LOADING_DRAWER: OnceLock<Mutex<LoadingDrawer>> = OnceLock::new();
 
 struct LoadingDrawer {
     list: Vec<Arc<RwLock<LoadingElement>>>,
-    color_scheme: Option<Box<dyn LoadingColorScheme + Send + Sync>>
+    color_scheme: Option<Box<dyn LoadingColorScheme + Send + Sync>>,
+    writer: Mutex<BufWriter<Stdout>>
 }
 #[allow(private_interfaces)]
 fn get_loading_drawer() -> MutexGuard<'static, LoadingDrawer> {
@@ -18,7 +19,8 @@ fn get_loading_drawer() -> MutexGuard<'static, LoadingDrawer> {
         Mutex::new(
             LoadingDrawer { 
                 list: (Vec::new()),
-                color_scheme: None
+                color_scheme: None,
+                writer: Mutex::from(BufWriter::new(stdout())),
             }
         )
     ).lock().unwrap()
@@ -42,12 +44,14 @@ pub fn add_loading_element(l_elem: Arc<RwLock<LoadingElement>>) {
 
 
 pub fn rcli_print(print_str: &String) { // TODO: Currently hardcoded for bottom position, make for top aswell
-    let line_count = print_str.lines().count();
+    let line_count: usize = print_str.lines().count();
     let tsize: C2U16 = get_terminal_size();
-    print!("\x1b[{y};{x}H{endchar:\n>fillchar_len$}", x=0, y=tsize.y-1, endchar="", fillchar_len=line_count+1); // Set cursor position to bottom and Fill with newlines
+    let drawer: MutexGuard<'static, LoadingDrawer> = get_loading_drawer();
+    let mut writer: MutexGuard<'_, BufWriter<Stdout>> = drawer.writer.lock().unwrap();
+    write!(writer, "\x1b[{y};{x}H{endchar:\n>fillchar_len$}", x=0, y=tsize.y, endchar="", fillchar_len=line_count).unwrap(); // Set cursor position to bottom and Fill with newlines
     // TODO: Will have errors if drawer count is bigger than screen size plus the line count
-    print!("\x1b[{y};{x}H", x = 0, y = tsize.y as usize - 1 - _LOADING_DRAWER.get().iter().count() - line_count - 1); // Set cursor position to height of top line
-    print!("{}\x1b[0K", str::replace(print_str, "\n", "\x1b[0K\n")); // Replace newline to erase to end of line, then new line
+    write!(writer, "\x1b[{y};{x}H", x = 0, y = tsize.y as usize - drawer.list.iter().count() - line_count + 1).unwrap(); // Set cursor position to height of top line
+    write!(writer, "{}\x1b[0K", str::replace(print_str, "\n", "\x1b[0K\n")).unwrap(); // Replace newline to erase to end of line, then new line
 }
 
 pub enum Position {
@@ -55,13 +59,14 @@ pub enum Position {
 }
 pub fn draw_loader(position: Position) {
     let sz: C2U16 = get_terminal_size();
-    let drawer = get_loading_drawer();
+    let drawer: MutexGuard<'static, LoadingDrawer> = get_loading_drawer();
+    let mut writer: MutexGuard<'_, BufWriter<Stdout>> = drawer.writer.lock().unwrap();
     for (i, elem) in drawer.list.iter().enumerate() {
         let line = match position {
             Position::TOP => i+1,
             Position::BOTTOM => sz.y as usize - i // This effectively reverses position of queue when printed
         };
-        print!("\x1B[{line};{column}H", line=line, column=0);
+        write!(writer, "\x1B[{line};{column}H", line=line, column=0).unwrap();
         // Minus with two as that the reported screen size is two chars too big and will wrap. WARNING: Can cause errors if screen size is below 2 width?
         let mut unused_char_count: usize = sz.x as usize - 2; // Defines as usize, as all of the string.len() returns usize, so no bulky conversions later
 
@@ -80,8 +85,8 @@ pub fn draw_loader(position: Position) {
 
         
         // Printout before char loading block
-        print!("{}", name_str);
-        print!("{progress}", progress = progress_chunks_str);
+        write!(writer, "{}", name_str).unwrap();
+        write!(writer, "{progress}", progress = progress_chunks_str).unwrap();
         
         
         // Update unused character count accorind to everyting printed, and what we expect to print (excpet for block char loading) 
@@ -93,15 +98,16 @@ pub fn draw_loader(position: Position) {
         let endchar: char = PROGRESS_CHARS[ ( (decimal_progress%pct_per_char) / pct_per_char * PROGRESS_CHARS_COUNT as f32 ) as usize ];
         let fillchar_len: usize = (decimal_progress / pct_per_char) as usize;
         match &drawer.color_scheme {
-            None => print!("{endchar:\u{2588}>fillchar_len$}", endchar = endchar, fillchar_len = fillchar_len ),
-            Some(x) => print!("{col_start}{endchar:\u{2588}>fillchar_len$}\x1b[0m",  endchar = endchar, fillchar_len = fillchar_len, col_start = x.get_char_block_color(&elem_l))
+            None => write!(writer, "{endchar:\u{2588}>fillchar_len$}", endchar = endchar, fillchar_len = fillchar_len ).unwrap(),
+            Some(x) => write!(writer, "{col_start}{endchar:\u{2588}>fillchar_len$}\x1b[0m",  endchar = endchar, fillchar_len = fillchar_len, col_start = x.get_char_block_color(&elem_l)).unwrap()
         }
         
         //rcli_print!("test\n{}", "123");
         
 
-        print!("\x1B[0K"); // Erase from cursor to end of line (Only necessary when whole line is not written!)
+        write!(writer, "\x1B[0K").unwrap(); // Erase from cursor to end of line (Only necessary when whole line is not written!)
     }
-    std::io::stdout().flush().unwrap(); // Flush all commands, since no new line is written
+    //std::io::stdout().flush().unwrap(); // Flush all commands, since no new line is written
+    writer.flush().unwrap();
 }
 
