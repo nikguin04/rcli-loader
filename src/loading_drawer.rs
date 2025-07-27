@@ -44,10 +44,10 @@ pub fn add_loading_element(l_elem: Arc<RwLock<LoadingElement>>) {
 pub fn rcli_print(print_str: &String) { // TODO: Currently hardcoded for bottom position, make for top aswell
     let line_count = print_str.lines().count();
     let tsize: C2U16 = get_terminal_size();
-    print!("\x1b[{y};{x}H{endchar:\n>fillchar_len$}", x=0, y=usize::MAX, endchar="", fillchar_len=line_count); // Set cursor position to bottom and Fill with newlines
+    print!("\x1b[{y};{x}H{endchar:\n>fillchar_len$}", x=0, y=tsize.y-1, endchar="", fillchar_len=line_count+1); // Set cursor position to bottom and Fill with newlines
     // TODO: Will have errors if drawer count is bigger than screen size plus the line count
-    print!("\x1b[{y};{x}H", x = 0, y = tsize.y as usize - 1 - _LOADING_DRAWER.get().iter().count() - line_count - 2); // Set cursor position to height of top line
-    print!("{}", str::replace(print_str, "\n", "\x1b[0K\n")); // Replace newline to erase to end of line, then new line
+    print!("\x1b[{y};{x}H", x = 0, y = tsize.y as usize - 1 - _LOADING_DRAWER.get().iter().count() - line_count - 1); // Set cursor position to height of top line
+    print!("{}\x1b[0K", str::replace(print_str, "\n", "\x1b[0K\n")); // Replace newline to erase to end of line, then new line
 }
 
 pub enum Position {
