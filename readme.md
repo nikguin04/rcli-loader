@@ -54,11 +54,11 @@
       </ul> -->
     </li>
     <li><a href="#usage">Usage</a></li>
-    <!-- <li><a href="#roadmap">Roadmap</a></li>
+    <!-- <li><a href="#roadmap">Roadmap</a></li>-->
     <li><a href="#contributing">Contributing</a></li>
     <li><a href="#license">License</a></li>
     <li><a href="#contact">Contact</a></li>
-    <li><a href="#acknowledgments">Acknowledgments</a></li> -->
+    <!-- <li><a href="#acknowledgments">Acknowledgments</a></li>  -->
   </ol>
 </details>
 
@@ -68,7 +68,18 @@
 ## About The Project
 
 [![rcli-loader product screenshot][product-screenshot]](https://github.com/nikguin04/rcli-loader)
-More info coming soon
+
+The RCLI-Loader crate **(coming soon)** is a Rust CLI manager built for versatile monitoring of the progress for running tasks, either quick or slow!
+<br /> A screenshot for an examplified implementation of the features can be seen below, including:
+ - Names
+ - Progress indicator (numbered)
+    - Also features providing a scaling function for conversion of any wanted unit!
+ - Progress indicator (block characters)
+    - Scaling perfectly to the terminal size to give maximal precision (8 blocks per character available)!
+
+![rcli-loader running example](.readme/SS_example_20250720_1.png "Example of program running")
+
+Even more features are coming, and feature requests are welcome: read <a href="#contributing">Contributing</a>
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -94,9 +105,9 @@ More info coming soon
 #### Running example
 1. git clone https://github.com/nikguin04/rcli-loader.git
 2. cd rcli-loader
-3. cargo run --example basic_example --all-feature
+3. cargo run --example basic_example --all-features
 
-#### Implementing library
+#### Implementing crate for your own project!
 Coming soon
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
