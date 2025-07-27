@@ -76,8 +76,15 @@ The RCLI-Loader crate **(coming soon)** is a Rust CLI manager built for versatil
     - Also features providing a scaling function for conversion of any wanted unit!
  - Progress indicator (block characters)
     - Scaling perfectly to the terminal size to give maximal precision (8 blocks per character available)!
+ - Fully customizable colors for individual loading elements
+    - Provide a custom function, or use an already created one, for determining the color setup of the loading elements.
+    - Note: Currently only the numbered progress indicator supports colors
+ - Custom alignment for loading elements: Place either aligning with top or bottom of terminal
+ - Custom print function for logging, without overwriting the loading elements.
+    - Currently only works when aligning loading elements at bottom.
+    - Scrollback buffer will never work with top alignment as no terminal has features to handle this without very suboptimal and slow workarounds. 
 
-![rcli-loader running example](.readme/SS_example_20250720_1.png "Example of program running")
+![rcli-loader running example](.readme/SS_example_20250727_1.png "Example of program running")
 
 Even more features are coming, and feature requests are welcome: read <a href="#contributing">Contributing</a>
 
