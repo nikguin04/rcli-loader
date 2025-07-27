@@ -41,25 +41,21 @@ pub fn add_loading_element(l_elem: Arc<RwLock<LoadingElement>>) {
 }
 
 
-#[macro_export]
-macro_rules! rcli_print {
-    ($($arg:tt)*) => {{ // TODO: Currently hardcoded for bottom position, make for top aswell
-        print!("\x1b[{x};{y}H", x=0, y=); // Set cursor position to height of top line
-        print!($($arg)*);
-        // Set cursor position to bottom and Fill with newlines
-        print!("\x1b[{x};{y}H{endchar:\n>fillchar_len$}", x=0, y=usize::MAX, endchar="", fillchar_len=_LOADING_DRAWER.get().iter().count());
-    }};
+pub fn rcli_print(print_str: &String) { // TODO: Currently hardcoded for bottom position, make for top aswell
+    let line_count = print_str.lines().count();
+    let tsize: C2U16 = get_terminal_size();
+    // TODO: Will have errors if drawer count is bigger than screen size plus the line count
+    print!("\x1b[{y};{x}H", x = 0, y = tsize.y as usize - _LOADING_DRAWER.get().iter().count() - line_count - 2); // Set cursor position to height of top line
+    print!("{}", print_str);
+    // Set cursor position to bottom and Fill with newlines
+    print!("\x1b[{y};{x}H{endchar:\n>fillchar_len$}", x=0, y=usize::MAX, endchar="", fillchar_len=line_count);
 }
 
 pub enum Position {
     TOP,BOTTOM
 }
 pub fn draw_loader(position: Position) {
-    let sz: C2U16 = match get_terminal_size() { // TODO: Implement panic handler for drawing at upper function
-        Ok(res) => res,
-        //Err(_) => { println!("Failed to get terminal size"); return; } // TODO: do a proper print here when implemented
-        Err(_) => C2U16 { x: (70), y: (16) }
-    };
+    let sz: C2U16 = get_terminal_size();
     let drawer = get_loading_drawer();
     for (i, elem) in drawer.list.iter().enumerate() {
         let line = match position {
