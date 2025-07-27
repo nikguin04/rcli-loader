@@ -1,4 +1,4 @@
-use std::{io::{Write}, sync::{Arc, RwLock}, thread, time::Duration};
+use std::{io::{Write}, sync::{Arc, RwLock}};
 
 
 use rcli_loader::loading_element::LoadingElement;
@@ -15,7 +15,7 @@ pub fn sim_download(loading_element: Arc<RwLock<LoadingElement>>) -> JoinHandle<
         let client = Client::new();
         let mut response = match client.get(url).send().await {
             Ok(res) => res,
-            Err(error) => { print!("Error creating request"); return } // TODO: Do a proper callback here. Perhaps make loader able to display ERROR instead of loading bar if not cleared?
+            Err(_error) => { print!("Error creating request"); return } // TODO: Do a proper callback here. Perhaps make loader able to display ERROR instead of loading bar if not cleared?
         };
         
 
@@ -27,7 +27,6 @@ pub fn sim_download(loading_element: Arc<RwLock<LoadingElement>>) -> JoinHandle<
         //println!("Total size: {} bytes", total_size);
 
         let mut file = std::fs::File::create("target/output.zip").unwrap();
-        let mut downloaded: u64 = 0;
 
     
         while let Some(chunk) = response.chunk().await.unwrap() {

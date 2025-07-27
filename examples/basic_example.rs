@@ -1,4 +1,4 @@
-use std::{sync::{Arc, RwLock}, time::{self, Duration}};
+use std::{sync::{Arc, RwLock}, time::{Duration}};
 use humansize::{format_size, DECIMAL};
 
 mod modules;

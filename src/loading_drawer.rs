@@ -55,7 +55,6 @@ pub fn rcli_print(print_str: &String) { // TODO: Currently hardcoded for bottom 
     let mut writer: MutexGuard<'_, BufWriter<Stdout>> = drawer.writer.lock().unwrap();
     if drawer.enable_scrollback_buffer {
         // Erase all loading board currently written, as to counteract flashing when pusing new lines up
-        let t = drawer.list.iter().count();
         write!(writer, "\x1b[{y};{x}H\x1b[0J", x = 0, y = tsize.y as usize - drawer.list.iter().count()+1 ).unwrap();
         // Set cursor position to bottom and Fill with newlines
         write!(writer, "\x1b[{y};{x}H{endchar:\n>fillchar_len$}", x=0, y=tsize.y, endchar="", fillchar_len=line_count).unwrap();
