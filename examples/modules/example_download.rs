@@ -24,7 +24,7 @@ pub fn sim_download(loading_element: Arc<RwLock<LoadingElement>>) -> JoinHandle<
             .unwrap_or(0);
         loading_element.write().unwrap().set_max(total_size as usize);
 
-        println!("Total size: {} bytes", total_size);
+        //println!("Total size: {} bytes", total_size);
 
         let mut file = std::fs::File::create("target/output.zip").unwrap();
         let mut downloaded: u64 = 0;

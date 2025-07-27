@@ -29,11 +29,11 @@ async fn main() {
     sim_load(le3.clone(), 100);
     sim_download(le4.clone());
 
-    println!("Starting loop");
+    //println!("Starting loop");
     for _i in 0..600 {
         draw_loader(Position::BOTTOM);
         rcli_print(&format!("line {}\n", _i));
-        sleep(Duration::from_millis(100)).await;
+        sleep(Duration::from_millis(1000)).await;
     }
 }
 
