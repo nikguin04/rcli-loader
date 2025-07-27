@@ -53,7 +53,13 @@ pub fn rcli_print(print_str: &String) { // TODO: Currently hardcoded for bottom 
     let tsize: C2U16 = get_terminal_size();
     let drawer: MutexGuard<'static, LoadingDrawer> = get_loading_drawer();
     let mut writer: MutexGuard<'_, BufWriter<Stdout>> = drawer.writer.lock().unwrap();
-    if drawer.enable_scrollback_buffer { write!(writer, "\x1b[{y};{x}H{endchar:\n>fillchar_len$}", x=0, y=tsize.y, endchar="", fillchar_len=line_count).unwrap(); } // Set cursor position to bottom and Fill with newlines
+    if drawer.enable_scrollback_buffer {
+        // Erase all loading board currently written, as to counteract flashing when pusing new lines up
+        let t = drawer.list.iter().count();
+        write!(writer, "\x1b[{y};{x}H\x1b[0J", x = 0, y = tsize.y as usize - drawer.list.iter().count()+1 ).unwrap();
+        // Set cursor position to bottom and Fill with newlines
+        write!(writer, "\x1b[{y};{x}H{endchar:\n>fillchar_len$}", x=0, y=tsize.y, endchar="", fillchar_len=line_count).unwrap();
+    }
     // TODO: Will have errors if drawer count is bigger than screen size plus the line count
     write!(writer, "\x1b[{y};{x}H", x = 0, y = tsize.y as usize - drawer.list.iter().count() - line_count + 1).unwrap(); // Set cursor position to height of top line
     write!(writer, "{}\x1b[0K", str::replace(print_str, "\n", "\x1b[0K\n")).unwrap(); // Replace newline to erase to end of line, then new line
