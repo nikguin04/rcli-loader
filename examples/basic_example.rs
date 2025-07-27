@@ -2,7 +2,7 @@ use std::{sync::{Arc, RwLock}, time::{self, Duration}};
 use humansize::{format_size, DECIMAL};
 
 mod modules;
-use rcli_loader::{drawer_helper::RedGreenScheme, loading_drawer::{add_loading_element, draw_at_top, erase_screen, hide_cursor, set_colorscheme}, loading_element::LoadingElement};
+use rcli_loader::{drawer_helper::RedGreenScheme, loading_drawer::{add_loading_element, draw_at_top, draw_loader, erase_screen, hide_cursor, set_colorscheme, Position}, loading_element::LoadingElement, rcli_print};
 use tokio::time::sleep;
 
 use crate::modules::{example_download::sim_download, example_load::sim_load};
@@ -27,15 +27,15 @@ async fn main() {
     sim_load(le1.clone(), 50);
     sim_load(le2.clone(), 25);
     sim_load(le3.clone(), 100);
-    //sim_download(le4.clone());
+    sim_download(le4.clone());
 
     println!("Starting loop");
     for _i in 0..600 {
-        draw_at_top();
+        draw_loader(Position::BOTTOM);
+        rcli_print!("line {}", _i);
         sleep(Duration::from_millis(100)).await;
     }
 
-    //get_terminal_size();
 }
 
 fn convert_byte(value: usize) -> Box<str> {

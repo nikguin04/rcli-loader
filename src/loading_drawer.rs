@@ -1,4 +1,4 @@
-use std::{io::Write, sync::{Arc, Mutex, MutexGuard, OnceLock, RwLock}, vec::{self, Vec}};
+use std::{io::Write, sync::{Arc, Mutex, MutexGuard, OnceLock, RwLock}, vec::{Vec}};
 
 
 use crate::{drawer_helper::LoadingColorScheme, loading_element::LoadingElement, terminal_helper::{get_terminal_size, C2U16}};
@@ -39,7 +39,22 @@ pub fn show_cursor() { // Implementation specific for consoles, might not work
 pub fn add_loading_element(l_elem: Arc<RwLock<LoadingElement>>) {
     get_loading_drawer().list.push(l_elem);
 }
-pub fn draw_at_top() {
+
+
+#[macro_export]
+macro_rules! rcli_print {
+    ($($arg:tt)*) => {{ // TODO: Currently hardcoded for bottom position, make for top aswell
+        print!("\x1b[{x};{y}H", x=0, y=); // Set cursor position to height of top line
+        print!($($arg)*);
+        // Set cursor position to bottom and Fill with newlines
+        print!("\x1b[{x};{y}H{endchar:\n>fillchar_len$}", x=0, y=usize::MAX, endchar="", fillchar_len=_LOADING_DRAWER.get().iter().count());
+    }};
+}
+
+pub enum Position {
+    TOP,BOTTOM
+}
+pub fn draw_loader(position: Position) {
     let sz: C2U16 = match get_terminal_size() { // TODO: Implement panic handler for drawing at upper function
         Ok(res) => res,
         //Err(_) => { println!("Failed to get terminal size"); return; } // TODO: do a proper print here when implemented
@@ -47,8 +62,13 @@ pub fn draw_at_top() {
     };
     let drawer = get_loading_drawer();
     for (i, elem) in drawer.list.iter().enumerate() {
-        print!("\x1B[{line};{column}H", line=i+1, column=0);
-        let mut unused_char_count: usize = sz.x as usize; // Defines as usize, as all of the string.len() returns usize, so no bulky conversions later
+        let line = match position {
+            Position::TOP => i+1,
+            Position::BOTTOM => sz.y as usize - i // This effectively reverses position of queue when printed
+        };
+        print!("\x1B[{line};{column}H", line=line, column=0);
+        // Minus with two as that the reported screen size is two chars too big and will wrap. WARNING: Can cause errors if screen size is below 2 width?
+        let mut unused_char_count: usize = sz.x as usize - 2; // Defines as usize, as all of the string.len() returns usize, so no bulky conversions later
 
         // All work on element to release read lock quickly
         let elem_l = elem.read().unwrap();
@@ -82,8 +102,8 @@ pub fn draw_at_top() {
             Some(x) => print!("{col_start}{endchar:\u{2588}>fillchar_len$}\x1b[0m",  endchar = endchar, fillchar_len = fillchar_len, col_start = x.get_char_block_color(&elem_l))
         }
         
+        //rcli_print!("test\n{}", "123");
         
-
 
         //print!("\x1B[0K"); // Erase from cursor to end of line (Only necessary when whole line is not written!)
         std::io::stdout().flush().unwrap(); // Flush all commands, since no new line is written
