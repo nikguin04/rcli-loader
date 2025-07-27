@@ -11,7 +11,8 @@ static _LOADING_DRAWER: OnceLock<Mutex<LoadingDrawer>> = OnceLock::new();
 struct LoadingDrawer {
     list: Vec<Arc<RwLock<LoadingElement>>>,
     color_scheme: Option<Box<dyn LoadingColorScheme + Send + Sync>>,
-    writer: Mutex<BufWriter<Stdout>>
+    writer: Mutex<BufWriter<Stdout>>,
+    enable_scrollback_buffer: bool
 }
 #[allow(private_interfaces)]
 fn get_loading_drawer() -> MutexGuard<'static, LoadingDrawer> {
@@ -21,12 +22,16 @@ fn get_loading_drawer() -> MutexGuard<'static, LoadingDrawer> {
                 list: (Vec::new()),
                 color_scheme: None,
                 writer: Mutex::from(BufWriter::new(stdout())),
+                enable_scrollback_buffer: false
             }
         )
     ).lock().unwrap()
 }
 pub fn set_colorscheme(color_scheme: Box<dyn LoadingColorScheme + Send + Sync>) {
     get_loading_drawer().color_scheme = Some(color_scheme);
+}
+pub fn enable_scrollback_buffer(state: bool) {
+    get_loading_drawer().enable_scrollback_buffer = state;
 }
 pub fn erase_screen() { // Usually to be used at init
     println!("\x1B[2J");
@@ -48,7 +53,7 @@ pub fn rcli_print(print_str: &String) { // TODO: Currently hardcoded for bottom 
     let tsize: C2U16 = get_terminal_size();
     let drawer: MutexGuard<'static, LoadingDrawer> = get_loading_drawer();
     let mut writer: MutexGuard<'_, BufWriter<Stdout>> = drawer.writer.lock().unwrap();
-    write!(writer, "\x1b[{y};{x}H{endchar:\n>fillchar_len$}", x=0, y=tsize.y, endchar="", fillchar_len=line_count).unwrap(); // Set cursor position to bottom and Fill with newlines
+    if drawer.enable_scrollback_buffer { write!(writer, "\x1b[{y};{x}H{endchar:\n>fillchar_len$}", x=0, y=tsize.y, endchar="", fillchar_len=line_count).unwrap(); } // Set cursor position to bottom and Fill with newlines
     // TODO: Will have errors if drawer count is bigger than screen size plus the line count
     write!(writer, "\x1b[{y};{x}H", x = 0, y = tsize.y as usize - drawer.list.iter().count() - line_count + 1).unwrap(); // Set cursor position to height of top line
     write!(writer, "{}\x1b[0K", str::replace(print_str, "\n", "\x1b[0K\n")).unwrap(); // Replace newline to erase to end of line, then new line

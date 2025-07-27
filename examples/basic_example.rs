@@ -31,7 +31,7 @@ async fn main() {
 
     //println!("Starting loop");
     for _i in 0..600 {
-        rcli_print(&format!("line {}", _i));
+        rcli_print(&format!("Printing some semi long line with an index: {}\nHere is the next line of my print statement!", _i));
         draw_loader(Position::BOTTOM);
         sleep(Duration::from_millis(1000)).await;
     }
