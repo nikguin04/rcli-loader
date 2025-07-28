@@ -1,7 +1,6 @@
-use std::{io::Write, sync::{Arc, Mutex, MutexGuard, OnceLock, RwLock}, vec::{Vec}};
+use std::{collections::VecDeque, io::Write, ops::Deref, sync::{Arc, Mutex, MutexGuard, OnceLock, RwLock}, vec::Vec};
 
-
-use crate::{drawer_helper::LoadingColorScheme, loading_element::LoadingElement, terminal_helper::{get_terminal_size, C2U16}};
+use crate::{drawer_helper::{print_splitter_line, set_terminal_pos, LoadingColorScheme, Position}, loading_element::LoadingElement, terminal_helper::{get_terminal_size, C2U16}};
 
 const PROGRESS_CHARS_COUNT: u8 = 8;
 static PROGRESS_CHARS: &'static [char] = &['\u{258F}', '\u{258E}', '\u{258D}', '\u{258C}', '\u{258B}', '\u{258A}', '\u{2589}', '\u{2588}'];
@@ -10,7 +9,11 @@ static _LOADING_DRAWER: OnceLock<Mutex<LoadingDrawer>> = OnceLock::new();
 
 struct LoadingDrawer {
     list: Vec<Arc<RwLock<LoadingElement>>>,
-    color_scheme: Option<Box<dyn LoadingColorScheme + Send + Sync>>
+    color_scheme: Option<Box<dyn LoadingColorScheme + Send + Sync>>,
+    print_history: VecDeque<String>,
+    loadingbar_anchor_position: Position,
+    max_history: usize,
+    allocated_rows_loadingbars: usize
 }
 #[allow(private_interfaces)]
 fn get_loading_drawer() -> MutexGuard<'static, LoadingDrawer> {
@@ -18,7 +21,11 @@ fn get_loading_drawer() -> MutexGuard<'static, LoadingDrawer> {
         Mutex::new(
             LoadingDrawer { 
                 list: (Vec::new()),
-                color_scheme: None
+                color_scheme: None,
+                print_history: VecDeque::new(),
+                loadingbar_anchor_position: Position::BOTTOM, // TODO: Make setter
+                max_history: 50, // TODO: Make setter
+                allocated_rows_loadingbars: 5 // TODO: Make dynamically adjust, or change by setter
             }
         )
     ).lock().unwrap()
@@ -26,6 +33,7 @@ fn get_loading_drawer() -> MutexGuard<'static, LoadingDrawer> {
 pub fn set_colorscheme(color_scheme: Box<dyn LoadingColorScheme + Send + Sync>) {
     get_loading_drawer().color_scheme = Some(color_scheme);
 }
+
 pub fn erase_screen() { // Usually to be used at init
     println!("\x1B[2J");
 }
@@ -41,23 +49,46 @@ pub fn add_loading_element(l_elem: Arc<RwLock<LoadingElement>>) {
 }
 
 
-pub fn rcli_print(print_str: &String) { // TODO: Currently hardcoded for bottom position, make for top aswell
-    let line_count = print_str.lines().count();
-    let tsize: C2U16 = get_terminal_size();
-    // TODO: Will have errors if drawer count is bigger than screen size plus the line count
-    print!("\x1b[{y};{x}H", x = 0, y = tsize.y as usize - _LOADING_DRAWER.get().iter().count() - line_count - 2); // Set cursor position to height of top line
-    print!("{}", print_str);
-    // Set cursor position to bottom and Fill with newlines
-    print!("\x1b[{y};{x}H{endchar:\n>fillchar_len$}", x=0, y=usize::MAX, endchar="", fillchar_len=line_count);
+pub fn rcli_print(print_str: String) {
+    let mut drawer: MutexGuard<'static, LoadingDrawer> = get_loading_drawer();
+    if drawer.print_history.len() > drawer.max_history { drawer.print_history.pop_back(); } // Keep history at constant/max size
+    drawer.print_history.push_front(print_str);
+    drop(drawer);
+    redraw_print_history();
 }
 
-pub enum Position {
-    TOP,BOTTOM
+// TODO: Make work with top pos, not just bottom
+pub fn redraw_print_history() {
+    let drawer: MutexGuard<'static, LoadingDrawer> = get_loading_drawer();
+    let history: &VecDeque<String> = &drawer.print_history;
+    let sz: C2U16 = get_terminal_size();
+
+    let offset: u16 = 0; // Offset height for printing history (TODO: adjust with top pos)
+    let mut remaining_height = sz.y - drawer.list.len() as u16;
+    print_splitter_line(&sz, remaining_height);
+    remaining_height -= 1;
+
+    // Iteratte over each history element, TODO: feature: this should be line indexed already so we can scroll up, and should not just start at first history element and line
+    'outer: for prt_stmnt in history.iter() { // Note: due to vecdeque, we already iterate from front to back
+        for line in prt_stmnt.lines().rev() {
+            for term_fit_line in line.as_bytes().chunks(sz.x as usize).rev() { // Chunk every line so that we can calculate how many times one "line" would wrap in our console, and adjust the remaining height.
+                set_terminal_pos(C2U16 { x: 0, y: offset + remaining_height });
+                print!("{}", std::str::from_utf8(term_fit_line).unwrap()); // Convert line back to string or utf8
+                if remaining_height == 0 { break 'outer; } // Note: Should this flush as well?
+                remaining_height -= 1;
+            };
+            print!("\x1b[0K") // Erase rest of line
+        };
+    };
+
+    std::io::stdout().flush().unwrap();
 }
-pub fn draw_loader(position: Position) {
+
+pub fn draw_loader() {
     let sz: C2U16 = get_terminal_size();
     let drawer = get_loading_drawer();
     for (i, elem) in drawer.list.iter().enumerate() {
+        let position = Position::BOTTOM; // TEMP
         let line = match position {
             Position::TOP => i+1,
             Position::BOTTOM => sz.y as usize - i // This effectively reverses position of queue when printed

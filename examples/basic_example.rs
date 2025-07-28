@@ -2,7 +2,7 @@ use std::{sync::{Arc, RwLock}, time::{self, Duration}};
 use humansize::{format_size, DECIMAL};
 
 mod modules;
-use rcli_loader::{drawer_helper::RedGreenScheme, loading_drawer::{add_loading_element, draw_loader, erase_screen, hide_cursor, rcli_print, set_colorscheme, Position}, loading_element::LoadingElement};
+use rcli_loader::{drawer_helper::RedGreenScheme, loading_drawer::{add_loading_element, draw_loader, erase_screen, hide_cursor, rcli_print, set_colorscheme}, loading_element::LoadingElement};
 use tokio::time::sleep;
 
 use crate::modules::{example_download::sim_download, example_load::sim_load};
@@ -31,8 +31,9 @@ async fn main() {
 
     println!("Starting loop");
     for _i in 0..600 {
-        draw_loader(Position::BOTTOM);
-        rcli_print(&format!("line {}\n", _i));
+        draw_loader();
+        rcli_print(format!("line {}\n", _i));
+        if _i % 20 == 0 { rcli_print(format!("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.")) };
         sleep(Duration::from_millis(100)).await;
     }
 }

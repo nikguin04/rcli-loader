@@ -1,4 +1,7 @@
-use crate::loading_element::LoadingElement;
+use crate::{loading_element::LoadingElement, terminal_helper::C2U16};
+pub enum Position {
+    TOP,BOTTOM
+}
 
 pub trait LoadingColorScheme {
     fn get_char_block_color(&self, l_elem: &LoadingElement) -> Box<str>; // WARNING: Return of string as color with ANSI codes is unreliable, this should be made to some kind of struct?
@@ -19,5 +22,16 @@ impl LoadingColorScheme for BlueScheme {
     }
 }
 
+// TODO: This might work more effectively as a macro
+pub fn set_terminal_pos(pos: C2U16) {
+    print!("\x1B[{line};{column}H", column = pos.x as usize, line = pos.y as usize);
+}
+
+// Note: Does not flush stdout
+// Prints Unicode U+2500 '─'
+pub fn print_splitter_line(terminal_size: &C2U16, offset_height: u16) {
+    set_terminal_pos(C2U16 { x: 0, y: offset_height }); // Set proper positioning
+    print!("{end:\u{2500}>times$}", end="", times=terminal_size.x as usize); // Print 
+}
 
 
