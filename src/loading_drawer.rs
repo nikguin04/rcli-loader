@@ -71,13 +71,12 @@ pub fn redraw_print_history() {
     // Iteratte over each history element, TODO: feature: this should be line indexed already so we can scroll up, and should not just start at first history element and line
     'outer: for prt_stmnt in history.iter() { // Note: due to vecdeque, we already iterate from front to back
         for line in prt_stmnt.lines().rev() {
-            for term_fit_line in line.as_bytes().chunks(sz.x as usize).rev() { // Chunk every line so that we can calculate how many times one "line" would wrap in our console, and adjust the remaining height.
+            for term_fit_line in line.as_bytes().chunks(sz.x as usize - 1).rev() { // Chunk every line so that we can calculate how many times one "line" would wrap in our console, and adjust the remaining height.
                 set_terminal_pos(C2U16 { x: 0, y: offset + remaining_height });
-                print!("{}", std::str::from_utf8(term_fit_line).unwrap()); // Convert line back to string or utf8
+                print!("{}\x1b[0K", std::str::from_utf8(term_fit_line).unwrap()); // Convert line back to string or utf8, and clear "rest of line"
                 if remaining_height == 0 { break 'outer; } // Note: Should this flush as well?
                 remaining_height -= 1;
             };
-            print!("\x1b[0K") // Erase rest of line
         };
     };
 
