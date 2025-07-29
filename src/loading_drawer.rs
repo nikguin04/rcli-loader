@@ -138,7 +138,7 @@ pub fn draw_loader() {
         //rcli_print!("test\n{}", "123");
         
 
-        //print!("\x1B[0K"); // Erase from cursor to end of line (Only necessary when whole line is not written!)
+        print!("\x1B[0K"); // Erase from cursor to end of line (Only necessary when whole line is not written!)
         std::io::stdout().flush().unwrap(); // Flush all commands, since no new line is written
     }
 }
