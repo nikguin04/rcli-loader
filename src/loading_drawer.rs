@@ -33,6 +33,9 @@ fn get_loading_drawer() -> MutexGuard<'static, LoadingDrawer> {
 pub fn set_colorscheme(color_scheme: Box<dyn LoadingColorScheme + Send + Sync>) {
     get_loading_drawer().color_scheme = Some(color_scheme);
 }
+pub fn set_loadingbar_anchor_position(position: Position) {
+    get_loading_drawer().loadingbar_anchor_position = position; // TODO: Figure if this should also redraw everything, or if we assume that automatically happens
+}
 
 pub fn erase_screen() { // Usually to be used at init
     println!("\x1B[2J");
@@ -62,10 +65,15 @@ pub fn redraw_print_history() {
     let drawer: MutexGuard<'static, LoadingDrawer> = get_loading_drawer();
     let history: &VecDeque<String> = &drawer.print_history;
     let sz: V2Usz = get_terminal_size();
+    let pos: &Position = &drawer.loadingbar_anchor_position;
 
-    let offset: usize = 0; // Offset height for printing history (TODO: adjust with top pos)
-    let mut remaining_height = sz.y - drawer.list.len();
-    print_splitter_line(&sz, remaining_height);
+    let offset: usize = match pos { // Offset height for printing history, which our terminal cursor must jump to, as to avoid overwriting loading bars
+        Position::BOTTOM => 0,
+        Position::TOP => drawer.list.len() + 1
+    };
+    let mut remaining_height: usize = sz.y - drawer.list.len();
+
+    print_splitter_line(&sz, match pos { Position::BOTTOM => remaining_height, Position::TOP => offset }); // Print either at top or bottom of message "box" depending on the wanted position anchoring
     remaining_height -= 1;
 
     // Iteratte over each history element, TODO: feature: this should be line indexed already so we can scroll up, and should not just start at first history element and line
@@ -74,8 +82,8 @@ pub fn redraw_print_history() {
             for term_fit_line in line.as_bytes().chunks(sz.x as usize - 1).rev() { // Chunk every line so that we can calculate how many times one "line" would wrap in our console, and adjust the remaining height.
                 set_terminal_pos(V2Usz { x: 0, y: offset + remaining_height });
                 print!("{}\x1b[0K", std::str::from_utf8(term_fit_line).unwrap()); // Convert line back to string or utf8, and clear "rest of line"
-                if remaining_height == 0 { break 'outer; } // Note: Should this flush as well?
                 remaining_height -= 1;
+                if remaining_height == 0 { break 'outer; } // Note: Should this flush as well?
             };
         };
     };
@@ -87,8 +95,7 @@ pub fn draw_loader() {
     let sz: V2Usz = get_terminal_size();
     let drawer = get_loading_drawer();
     for (i, elem) in drawer.list.iter().enumerate() {
-        let position = Position::BOTTOM; // TEMP
-        let line = match position {
+        let line = match drawer.loadingbar_anchor_position {
             Position::TOP => i+1,
             Position::BOTTOM => sz.y as usize - i // This effectively reverses position of queue when printed
         };

@@ -2,7 +2,7 @@ use std::{sync::{Arc, RwLock}, time::{self, Duration}};
 use humansize::{format_size, DECIMAL};
 
 mod modules;
-use rcli_loader::{drawer_helper::RedGreenScheme, loading_drawer::{add_loading_element, draw_loader, erase_screen, hide_cursor, rcli_print, set_colorscheme}, loading_element::LoadingElement};
+use rcli_loader::{drawer_helper::{Position, RedGreenScheme}, loading_drawer::{add_loading_element, draw_loader, erase_screen, hide_cursor, rcli_print, set_colorscheme, set_loadingbar_anchor_position}, loading_element::LoadingElement};
 use tokio::time::sleep;
 
 use crate::modules::{example_download::sim_download, example_load::sim_load};
@@ -12,6 +12,7 @@ async fn main() {
     erase_screen();
     hide_cursor();
     set_colorscheme(Box::from(RedGreenScheme {}));
+    set_loadingbar_anchor_position(Position::TOP);
 
     let le1= Arc::from(RwLock::from(LoadingElement::new(100, Box::from("Loader 1"), None )));
     let le2= Arc::from(RwLock::from(LoadingElement::new(300, Box::from("Loader 2"), None )));
