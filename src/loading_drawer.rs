@@ -1,6 +1,6 @@
-use std::{collections::VecDeque, io::Write, ops::Deref, sync::{Arc, Mutex, MutexGuard, OnceLock, RwLock}, vec::Vec};
+use std::{collections::VecDeque, io::Write, sync::{Arc, Mutex, MutexGuard, OnceLock, RwLock}, vec::Vec};
 
-use crate::{drawer_helper::{print_splitter_line, set_terminal_pos, LoadingColorScheme, Position}, loading_element::LoadingElement, terminal_helper::{get_terminal_size, C2U16}};
+use crate::{drawer_helper::{print_splitter_line, set_terminal_pos, LoadingColorScheme, Position}, loading_element::LoadingElement, terminal_helper::{get_terminal_size, V2Usz}};
 
 const PROGRESS_CHARS_COUNT: u8 = 8;
 static PROGRESS_CHARS: &'static [char] = &['\u{258F}', '\u{258E}', '\u{258D}', '\u{258C}', '\u{258B}', '\u{258A}', '\u{2589}', '\u{2588}'];
@@ -61,10 +61,10 @@ pub fn rcli_print(print_str: String) {
 pub fn redraw_print_history() {
     let drawer: MutexGuard<'static, LoadingDrawer> = get_loading_drawer();
     let history: &VecDeque<String> = &drawer.print_history;
-    let sz: C2U16 = get_terminal_size();
+    let sz: V2Usz = get_terminal_size();
 
-    let offset: u16 = 0; // Offset height for printing history (TODO: adjust with top pos)
-    let mut remaining_height = sz.y - drawer.list.len() as u16;
+    let offset: usize = 0; // Offset height for printing history (TODO: adjust with top pos)
+    let mut remaining_height = sz.y - drawer.list.len();
     print_splitter_line(&sz, remaining_height);
     remaining_height -= 1;
 
@@ -72,7 +72,7 @@ pub fn redraw_print_history() {
     'outer: for prt_stmnt in history.iter() { // Note: due to vecdeque, we already iterate from front to back
         for line in prt_stmnt.lines().rev() {
             for term_fit_line in line.as_bytes().chunks(sz.x as usize - 1).rev() { // Chunk every line so that we can calculate how many times one "line" would wrap in our console, and adjust the remaining height.
-                set_terminal_pos(C2U16 { x: 0, y: offset + remaining_height });
+                set_terminal_pos(V2Usz { x: 0, y: offset + remaining_height });
                 print!("{}\x1b[0K", std::str::from_utf8(term_fit_line).unwrap()); // Convert line back to string or utf8, and clear "rest of line"
                 if remaining_height == 0 { break 'outer; } // Note: Should this flush as well?
                 remaining_height -= 1;
@@ -84,7 +84,7 @@ pub fn redraw_print_history() {
 }
 
 pub fn draw_loader() {
-    let sz: C2U16 = get_terminal_size();
+    let sz: V2Usz = get_terminal_size();
     let drawer = get_loading_drawer();
     for (i, elem) in drawer.list.iter().enumerate() {
         let position = Position::BOTTOM; // TEMP

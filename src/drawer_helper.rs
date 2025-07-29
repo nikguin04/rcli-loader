@@ -1,4 +1,4 @@
-use crate::{loading_element::LoadingElement, terminal_helper::C2U16};
+use crate::{loading_element::LoadingElement, terminal_helper::V2Usz};
 pub enum Position {
     TOP,BOTTOM
 }
@@ -23,14 +23,14 @@ impl LoadingColorScheme for BlueScheme {
 }
 
 // TODO: This might work more effectively as a macro
-pub fn set_terminal_pos(pos: C2U16) {
+pub fn set_terminal_pos(pos: V2Usz) {
     print!("\x1B[{line};{column}H", column = pos.x as usize, line = pos.y as usize);
 }
 
 // Note: Does not flush stdout
 // Prints Unicode U+2500 '─'
-pub fn print_splitter_line(terminal_size: &C2U16, offset_height: u16) {
-    set_terminal_pos(C2U16 { x: 0, y: offset_height }); // Set proper positioning
+pub fn print_splitter_line(terminal_size: &V2Usz, offset_height: usize) {
+    set_terminal_pos(V2Usz { x: 0, y: offset_height }); // Set proper positioning
     print!("{end:\u{2500}>times$}", end="", times=terminal_size.x as usize); // Print 
 }
 
