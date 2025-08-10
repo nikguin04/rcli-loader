@@ -71,6 +71,10 @@ pub fn redraw_print_history() {
         Position::BOTTOM => 0,
         Position::TOP => drawer.list.len() + 1
     };
+    if sz.y <= drawer.list.len() + 1 { // Accounting for both loading elemenets and splitter line
+        println!("\x1b[1EWindow is too small to print history\x1b[0K"); // Reset cursor to next line and foribly print error, also clear to end of line
+        return;
+    }
     let mut remaining_height: usize = sz.y - drawer.list.len();
 
     print_splitter_line(&sz, match pos { Position::BOTTOM => remaining_height, Position::TOP => offset }); // Print either at top or bottom of message "box" depending on the wanted position anchoring
