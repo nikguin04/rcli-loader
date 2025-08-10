@@ -60,7 +60,7 @@ pub fn rcli_print(print_str: String) {
     redraw_print_history();
 }
 
-// TODO: Make work with top pos, not just bottom
+// Future todo note: When making scrolling behaviour, slice the messages whenever window is resized and when a new message is added, so they will be presliced for printing.
 pub fn redraw_print_history() {
     let drawer: MutexGuard<'static, LoadingDrawer> = get_loading_drawer();
     let history: &VecDeque<String> = &drawer.print_history;
