@@ -1,6 +1,8 @@
-use std::{collections::VecDeque, io::Write, sync::{Arc, Mutex, MutexGuard, OnceLock, RwLock}, vec::Vec};
+use std::{collections::VecDeque, io::Write, sync::{Arc, Mutex, MutexGuard, OnceLock, RwLock}, time::Duration, vec::Vec};
 
 use crate::{drawer_helper::{print_splitter_line, set_terminal_pos, LoadingColorScheme, Position}, loading_element::LoadingElement, terminal_helper::{get_terminal_size, V2Usz}};
+use tokio::task::JoinHandle;
+use tokio::time::sleep;
 
 const PROGRESS_CHARS_COUNT: u8 = 8;
 static PROGRESS_CHARS: &'static [char] = &['\u{258F}', '\u{258E}', '\u{258D}', '\u{258C}', '\u{258B}', '\u{258A}', '\u{2589}', '\u{2588}'];
@@ -33,6 +35,18 @@ impl LoadingDrawer {
     }
     pub fn set_stdin_mode(&mut self, enabled: bool) {
         self.stdin_enabled = enabled;
+    }
+
+    pub fn start_draw_loop(&mut self) -> JoinHandle<()> {
+        tokio::spawn(async {
+            println!("Starting loop");
+            for _i in 0..600 {
+                draw_all();
+                rcli_print(format!("line {}\n", _i));
+                if _i % 20 == 0 { rcli_print(format!("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.")) };
+                sleep(Duration::from_millis(100)).await;
+            }
+        })
     }
 }
 

@@ -36,14 +36,12 @@ async fn main() {
     sim_load(le3.clone(), 100);
     sim_download(le4.clone());
 
-    drop(drawer); // TEMP TODO: Remove & fix this before merging with dev
-    println!("Starting loop");
-    for _i in 0..600 {
-        draw_all();
-        rcli_print(format!("line {}\n", _i));
-        if _i % 20 == 0 { rcli_print(format!("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.")) };
-        sleep(Duration::from_millis(100)).await;
+    drawer.start_draw_loop();
+    drop(drawer);
+    while (true) {
+        sleep(Duration::from_millis(1)).await;
     }
+    
 }
 
 fn convert_byte(value: usize) -> Box<str> {
