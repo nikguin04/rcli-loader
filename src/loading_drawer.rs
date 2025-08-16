@@ -28,6 +28,12 @@ impl LoadingDrawer {
     pub fn set_loadingbar_anchor_position(&mut self, position: Position) {
         self.loadingbar_anchor_position = position; // TODO: Figure if this should also redraw everything, or if we assume that automatically happens
     }
+    pub fn add_loading_element(&mut self, l_elem: Arc<RwLock<LoadingElement>>) {
+        self.list.push(l_elem);
+    }
+    pub fn set_stdin_mode(&mut self, enabled: bool) {
+        self.stdin_enabled = enabled;
+    }
 }
 
 #[allow(private_interfaces)]
@@ -56,15 +62,6 @@ pub fn hide_cursor() { // Implementation specific for consoles, might not work
 pub fn show_cursor() { // Implementation specific for consoles, might not work
     println!("\x1b[?25h");
 }
-
-pub fn add_loading_element(l_elem: Arc<RwLock<LoadingElement>>) {
-    get_loading_drawer().list.push(l_elem);
-}
-
-pub fn set_stdin_mode(enabled: bool) {
-    get_loading_drawer().stdin_enabled = enabled;
-}
-
 
 pub fn rcli_print(print_str: String) {
     let mut drawer: MutexGuard<'static, LoadingDrawer> = get_loading_drawer();

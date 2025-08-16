@@ -2,7 +2,7 @@ use std::{sync::{Arc, RwLock}, time::{self, Duration}};
 use humansize::{format_size, DECIMAL};
 
 mod modules;
-use rcli_loader::{drawer_helper::{Position, RedGreenScheme}, loading_drawer::{add_loading_element, draw_all, erase_screen, get_loading_drawer, hide_cursor, rcli_print}, loading_element::LoadingElement};
+use rcli_loader::{drawer_helper::{Position, RedGreenScheme}, loading_drawer::{draw_all, erase_screen, get_loading_drawer, hide_cursor, rcli_print}, loading_element::LoadingElement};
 use tokio::time::sleep;
 
 use crate::modules::{example_download::sim_download, example_load::sim_load};
@@ -24,17 +24,19 @@ async fn main() {
     let convert_function: fn(usize) -> Box<str> = convert_byte;
     let le4= Arc::from(RwLock::from(LoadingElement::new(0, Box::from("Big Buck Bunny"), Some(convert_function) ))); // TODO: make defaulting max values
 
-    drop(drawer); // TEMP
-    add_loading_element(le1.clone());
-    add_loading_element(le2.clone());
-    add_loading_element(le3.clone());
-    add_loading_element(le4.clone());
+    
+    drawer.add_loading_element(le1.clone());
+    drawer.add_loading_element(le2.clone());
+    drawer.add_loading_element(le3.clone());
+    drawer.add_loading_element(le4.clone());
 
+    
     sim_load(le1.clone(), 50);
     sim_load(le2.clone(), 25);
     sim_load(le3.clone(), 100);
     sim_download(le4.clone());
 
+    drop(drawer); // TEMP TODO: Remove & fix this before merging with dev
     println!("Starting loop");
     for _i in 0..600 {
         draw_all();
