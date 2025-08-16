@@ -7,16 +7,31 @@ static PROGRESS_CHARS: &'static [char] = &['\u{258F}', '\u{258E}', '\u{258D}', '
 static _LOADING_DRAWER: OnceLock<Mutex<LoadingDrawer>> = OnceLock::new();
 // Macro to define LOADING_DRAWER as mutex lock from _LOADING_DRAWER
 
-struct LoadingDrawer {
+pub struct LoadingDrawer {
     list: Vec<Arc<RwLock<LoadingElement>>>,
     color_scheme: Option<Box<dyn LoadingColorScheme + Send + Sync>>,
     print_history: VecDeque<String>,
     loadingbar_anchor_position: Position,
     max_history: usize,
+    stdin_enabled: bool,
     allocated_rows_loadingbars: usize
 }
+impl LoadingDrawer {
+    fn get_remaining_height(&self) -> usize { // WARNING: Make sure that only one drawable uses this function, as only one drawable can take up the "rest" of the space
+        return get_terminal_size().y 
+            - self.list.len()
+            - (if self.stdin_enabled {3} else {0});
+    }
+    pub fn set_colorscheme(&mut self, color_scheme: Box<dyn LoadingColorScheme + Send + Sync>) {
+        self.color_scheme = Some(color_scheme);
+    }
+    pub fn set_loadingbar_anchor_position(&mut self, position: Position) {
+        self.loadingbar_anchor_position = position; // TODO: Figure if this should also redraw everything, or if we assume that automatically happens
+    }
+}
+
 #[allow(private_interfaces)]
-fn get_loading_drawer() -> MutexGuard<'static, LoadingDrawer> {
+pub fn get_loading_drawer() -> MutexGuard<'static, LoadingDrawer> {
     _LOADING_DRAWER.get_or_init(||
         Mutex::new(
             LoadingDrawer { 
@@ -25,16 +40,11 @@ fn get_loading_drawer() -> MutexGuard<'static, LoadingDrawer> {
                 print_history: VecDeque::new(),
                 loadingbar_anchor_position: Position::BOTTOM, // TODO: Make setter
                 max_history: 50, // TODO: Make setter
+                stdin_enabled: true,
                 allocated_rows_loadingbars: 5 // TODO: Make dynamically adjust, or change by setter
             }
         )
     ).lock().unwrap()
-}
-pub fn set_colorscheme(color_scheme: Box<dyn LoadingColorScheme + Send + Sync>) {
-    get_loading_drawer().color_scheme = Some(color_scheme);
-}
-pub fn set_loadingbar_anchor_position(position: Position) {
-    get_loading_drawer().loadingbar_anchor_position = position; // TODO: Figure if this should also redraw everything, or if we assume that automatically happens
 }
 
 pub fn erase_screen() { // Usually to be used at init
@@ -51,17 +61,21 @@ pub fn add_loading_element(l_elem: Arc<RwLock<LoadingElement>>) {
     get_loading_drawer().list.push(l_elem);
 }
 
+pub fn set_stdin_mode(enabled: bool) {
+    get_loading_drawer().stdin_enabled = enabled;
+}
+
 
 pub fn rcli_print(print_str: String) {
     let mut drawer: MutexGuard<'static, LoadingDrawer> = get_loading_drawer();
     if drawer.print_history.len() > drawer.max_history { drawer.print_history.pop_back(); } // Keep history at constant/max size
     drawer.print_history.push_front(print_str);
     drop(drawer);
-    redraw_print_history();
+    draw_print_history();
 }
 
 // Future todo note: When making scrolling behaviour, slice the messages whenever window is resized and when a new message is added, so they will be presliced for printing.
-pub fn redraw_print_history() {
+pub fn draw_print_history() {
     let drawer: MutexGuard<'static, LoadingDrawer> = get_loading_drawer();
     let history: &VecDeque<String> = &drawer.print_history;
     let sz: V2Usz = get_terminal_size();
@@ -75,7 +89,7 @@ pub fn redraw_print_history() {
         println!("\x1b[1EWindow is too small to print history\x1b[0K"); // Reset cursor to next line and foribly print error, also clear to end of line
         return;
     }
-    let mut remaining_height: usize = sz.y - drawer.list.len();
+    let mut remaining_height: usize = drawer.get_remaining_height();
 
     print_splitter_line(&sz, match pos { Position::BOTTOM => remaining_height, Position::TOP => offset }); // Print either at top or bottom of message "box" depending on the wanted position anchoring
     remaining_height -= 1;
@@ -95,7 +109,13 @@ pub fn redraw_print_history() {
     std::io::stdout().flush().unwrap();
 }
 
-pub fn draw_loader() {
+pub fn draw_all() {
+    draw_loader();
+    draw_print_history();
+    //draw_input_area();
+}
+
+fn draw_loader() {
     let sz: V2Usz = get_terminal_size();
     let drawer = get_loading_drawer();
     for (i, elem) in drawer.list.iter().enumerate() {
