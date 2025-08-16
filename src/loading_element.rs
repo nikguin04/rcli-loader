@@ -1,4 +1,4 @@
-use std::{fmt::format, result, sync::Arc, usize};
+use std::{sync::Arc, usize};
 
 pub struct LoadingElement {
     max: usize,

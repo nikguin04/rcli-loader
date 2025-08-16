@@ -4,26 +4,27 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-        {
+        /*{
             "name": "(Windows) Launch",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/target/debug/cli-loader.exe",
+            "program": "${workspaceFolder}/target/debug/examples/basic_example.exe",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
             "environment": [],
             "console": "integratedTerminal" //"externalTerminal"
-        },
+        },*/
         {
         "name": "Debug Rust",
         "type": "lldb",
         "request": "launch",
-        "program": "${workspaceFolder}/target/debug/${workspaceFolderBasename}",
+        "program": "${workspaceFolder}/target/debug/examples/basic_example.exe",
         "args": [],
         "cwd": "${workspaceFolder}",
         "preLaunchTask": "cargo build",
-        "stopOnEntry": false
+        "stopOnEntry": false,
+        "terminal": "integrated",
         }
     ]
 }

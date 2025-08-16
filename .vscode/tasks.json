@@ -4,7 +4,7 @@
     {
       "label": "cargo build",
       "type": "shell",
-      "command": "cargo build",
+      "command": "cargo build --example basic_example --all-features",
       "group": {
         "kind": "build",
         "isDefault": true
