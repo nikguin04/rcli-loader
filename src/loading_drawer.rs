@@ -44,7 +44,7 @@ impl LoadingDrawer {
         self.draw_all();
     }
 
-    pub fn start_drawer_engine(mut self) {
+    pub fn start_drawer_engine(&mut self) {
         println!("Starting loop");
         for _i in 0..600 {
             self.handle_drawer_tick();
