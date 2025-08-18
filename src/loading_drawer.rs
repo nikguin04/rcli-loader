@@ -24,9 +24,9 @@ impl LoadingDrawer {
     
     pub fn draw_all(&mut self, data: &mut LoadingData) {
         self.draw_ordering.elements.iter().for_each(|elem| {
-            elem.draw(self, data);
+            (elem.draw)(self, elem, data);
         });
-        self.draw_ordering.fill_element.draw(self, data);
+        (self.draw_ordering.fill_element.draw)(self, &(self.draw_ordering.fill_element), data)
     }
 
     
