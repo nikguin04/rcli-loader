@@ -2,7 +2,7 @@ use std::{sync::{Arc, RwLock}, time::{self, Duration}};
 use humansize::{format_size, DECIMAL};
 
 mod modules;
-use rcli_loader::{drawer_helper::{Position, RedGreenScheme}, loading_drawer::{erase_screen, hide_cursor, LOADING_DRAWER}, loading_element::LoadingElement};
+use rcli_loader::{drawer_helper::{erase_screen, hide_cursor, Position, RedGreenScheme}, loading_element::LoadingElement, loading_handler::LOADING_HANDLER};
 use tokio::time::sleep;
 
 use crate::modules::{example_download::sim_download, example_load::sim_load};
@@ -12,9 +12,9 @@ async fn main() {
     erase_screen();
     hide_cursor();
     
-    let mut drawer = LOADING_DRAWER.lock().unwrap();
-    drawer.set_colorscheme(Box::from(RedGreenScheme {}));
-    drawer.set_loadingbar_anchor_position(Position::TOP);
+    let mut handler = LOADING_HANDLER.lock().unwrap();
+    //let mut drawer = handler.drawer;
+    handler.drawer.set_colorscheme(Box::from(RedGreenScheme {}));
 
     
 
@@ -25,10 +25,10 @@ async fn main() {
     let le4= Arc::from(RwLock::from(LoadingElement::new(0, Box::from("Big Buck Bunny"), Some(convert_function) ))); // TODO: make defaulting max values
 
     
-    drawer.add_loading_element(le1.clone());
-    drawer.add_loading_element(le2.clone());
-    drawer.add_loading_element(le3.clone());
-    drawer.add_loading_element(le4.clone());
+    handler.add_loading_element(le1.clone());
+    handler.add_loading_element(le2.clone());
+    handler.add_loading_element(le3.clone());
+    handler.add_loading_element(le4.clone());
 
     
     sim_load(le1.clone(), 50);
@@ -36,7 +36,7 @@ async fn main() {
     sim_load(le3.clone(), 100);
     sim_download(le4.clone());
 
-    drawer.start_drawer_engine();
+    handler.start_loader_engine();
     // drop(drawer); // Note: This is for testing async
     // while (true) {
     //     sleep(Duration::from_millis(1)).await;

@@ -1,4 +1,6 @@
 use crate::{loading_element::LoadingElement, terminal_helper::V2Usz};
+
+#[derive(Copy, Clone)]
 pub enum Position {
     TOP,BOTTOM
 }
@@ -34,4 +36,12 @@ pub fn print_splitter_line(terminal_size: &V2Usz, offset_height: usize) {
     print!("{end:\u{2500}>times$}", end="", times=terminal_size.x as usize); // Print 
 }
 
-
+pub fn erase_screen() { // Usually to be used at init
+    println!("\x1B[2J");
+}
+pub fn hide_cursor() { // Implementation specific for consoles, might not work
+    println!("\x1b[?25l");
+}
+pub fn show_cursor() { // Implementation specific for consoles, might not work
+    println!("\x1b[?25h");
+}
