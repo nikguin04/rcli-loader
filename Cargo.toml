@@ -23,7 +23,3 @@ e_tokio = ["dep:tokio", "dep:humansize", "dep:reqwest"]
 [[example]]
 name = "basic_example"
 required-features = ["e_tokio"]
-
-[[example]]
-name = "stdin_test"
-required-features = ["e_tokio"]
