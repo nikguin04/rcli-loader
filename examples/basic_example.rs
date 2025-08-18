@@ -2,7 +2,7 @@ use std::{sync::{Arc, RwLock}, time::{self, Duration}};
 use humansize::{format_size, DECIMAL};
 
 mod modules;
-use rcli_loader::{drawer_helper::{Position, RedGreenScheme}, loading_drawer::{erase_screen, get_loading_drawer, hide_cursor}, loading_element::LoadingElement};
+use rcli_loader::{drawer_helper::{Position, RedGreenScheme}, loading_drawer::{erase_screen, hide_cursor, LOADING_DRAWER}, loading_element::LoadingElement};
 use tokio::time::sleep;
 
 use crate::modules::{example_download::sim_download, example_load::sim_load};
@@ -12,7 +12,7 @@ async fn main() {
     erase_screen();
     hide_cursor();
     
-    let mut drawer = get_loading_drawer();
+    let mut drawer = LOADING_DRAWER.lock().unwrap();
     drawer.set_colorscheme(Box::from(RedGreenScheme {}));
     drawer.set_loadingbar_anchor_position(Position::TOP);
 

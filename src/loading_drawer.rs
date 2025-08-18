@@ -1,19 +1,32 @@
-use std::{collections::VecDeque, io::Write, sync::{Arc, Mutex, MutexGuard, OnceLock, RwLock}, thread, time::Duration, vec::Vec};
+use std::{collections::VecDeque, io::Write, sync::{Arc, Mutex, RwLock}, thread, time::Duration, vec::Vec};
 
 use crate::{drawer_helper::{print_splitter_line, set_terminal_pos, LoadingColorScheme, Position}, loading_element::LoadingElement, terminal_helper::{get_terminal_size, V2Usz}};
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use tokio::task::JoinHandle;
 use tokio::time::sleep;
+use lazy_static::lazy_static;
 
 const PROGRESS_CHARS_COUNT: u8 = 8;
 static PROGRESS_CHARS: &'static [char] = &['\u{258F}', '\u{258E}', '\u{258D}', '\u{258C}', '\u{258B}', '\u{258A}', '\u{2589}', '\u{2588}'];
-static _LOADING_DRAWER: OnceLock<Mutex<LoadingDrawer>> = OnceLock::new();
-// Macro to define LOADING_DRAWER as mutex lock from _LOADING_DRAWER
+lazy_static! {
+    static ref PRINT_BUFFER: Arc<Mutex<VecDeque<String>>> = Arc::from(Mutex::from(VecDeque::new()));
+    pub static ref LOADING_DRAWER: Mutex<LoadingDrawer> = Mutex::from(LoadingDrawer { 
+        list: (Vec::new()),
+        color_scheme: None,
+        print_history: VecDeque::new(),
+        print_buffer: PRINT_BUFFER.clone(),
+        loadingbar_anchor_position: Position::BOTTOM, // TODO: Make setter
+        max_history: 50, // TODO: Make setter
+        stdin_enabled: true,
+        allocated_rows_loadingbars: 5 // TODO: Make dynamically adjust, or change by setter
+    });
+}
 
 pub struct LoadingDrawer {
     list: Vec<Arc<RwLock<LoadingElement>>>,
     color_scheme: Option<Box<dyn LoadingColorScheme + Send + Sync>>,
     print_history: VecDeque<String>,
+    print_buffer: Arc<Mutex<VecDeque<String>>>,
     loadingbar_anchor_position: Position,
     max_history: usize,
     stdin_enabled: bool,
@@ -72,26 +85,6 @@ impl LoadingDrawer {
     }
 }
 
-#[allow(private_interfaces)]
-pub fn get_loading_drawer() -> MutexGuard<'static, LoadingDrawer> {
-    _LOADING_DRAWER.get_or_init(|| {
-        let o = Mutex::new(
-            LoadingDrawer { 
-                list: (Vec::new()),
-                color_scheme: None,
-                print_history: VecDeque::new(),
-                loadingbar_anchor_position: Position::BOTTOM, // TODO: Make setter
-                max_history: 50, // TODO: Make setter
-                stdin_enabled: true,
-                allocated_rows_loadingbars: 5 // TODO: Make dynamically adjust, or change by setter
-            }
-        );
-        o.lock().unwrap().init();
-        return o;
-    }
-    ).lock().unwrap()
-}
-
 pub fn erase_screen() { // Usually to be used at init
     println!("\x1B[2J");
 }
@@ -104,10 +97,12 @@ pub fn show_cursor() { // Implementation specific for consoles, might not work
 
 
 pub fn rcli_print(print_str: String) {
-    let mut drawer: MutexGuard<'static, LoadingDrawer> = get_loading_drawer();
-    if drawer.print_history.len() > drawer.max_history { drawer.print_history.pop_back(); } // Keep history at constant/max size
-    drawer.print_history.push_front(print_str);
-    drawer.draw_print_history();
+    let mut buf = PRINT_BUFFER.lock().unwrap();
+    buf.push_back(print_str);
+    // let mut drawer: MutexGuard<'static, LoadingDrawer> = get_loading_drawer();
+    // if drawer.print_history.len() > drawer.max_history { drawer.print_history.pop_back(); } // Keep history at constant/max size
+    // drawer.print_history.push_front(print_str);
+    // drawer.draw_print_history();
 }
 
 impl LoadingDrawer {
@@ -118,8 +113,16 @@ impl LoadingDrawer {
         //draw_input_area();
     }
 
+    fn flush_print_buffer(&mut self) {
+        let mut buf = self.print_buffer.lock().unwrap();
+        while !buf.is_empty() {
+            if self.print_history.len() >= self.max_history { self.print_history.pop_back(); }
+            self.print_history.push_front(buf.pop_front().unwrap_or(String::from("ERROR WHEN FLUSHING PRINT BUFFER!")));
+        }
+    }
     // Future todo note: When making scrolling behaviour, slice the messages whenever window is resized and when a new message is added, so they will be presliced for printing.
     pub fn draw_print_history(&mut self) {
+        self.flush_print_buffer();
         let history: &VecDeque<String> = &self.print_history;
         let sz: V2Usz = get_terminal_size();
         let pos: &Position = &self.loadingbar_anchor_position;
