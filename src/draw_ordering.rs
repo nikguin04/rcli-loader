@@ -4,11 +4,11 @@ use crate::{drawer_helper::Position, loading_data::LoadingData, loading_drawer::
 #[derive(Copy, Clone)]
 pub struct DrawableElement {
     pub pos: Position,
-    pub draw: fn(&LoadingDrawer, &Self, &mut LoadingData)
+    pub draw: fn(&LoadingDrawer, &Self, &mut LoadingData) -> usize
 }
 #[derive(Copy, Clone)]
 pub struct DrawableElementFill {
-    pub draw: fn(&LoadingDrawer, &Self, &mut LoadingData)
+    pub draw: fn(&LoadingDrawer, &Self, &mut LoadingData) -> usize
 }
 
 pub static LOADING_BAR: DrawableElement = DrawableElement { pos: Position::TOP, draw: LoadingDrawer::draw_loader };

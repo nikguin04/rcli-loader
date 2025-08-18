@@ -24,9 +24,9 @@ impl LoadingDrawer {
     
     pub fn draw_all(&mut self, data: &mut LoadingData) {
         self.draw_ordering.elements.iter().for_each(|elem| {
-            (elem.draw)(self, elem, data);
+            let lines_used: usize = (elem.draw)(self, elem, data);
         });
-        (self.draw_ordering.fill_element.draw)(self, &(self.draw_ordering.fill_element), data)
+        let lines_used = (self.draw_ordering.fill_element.draw)(self, &(self.draw_ordering.fill_element), data);
     }
 
     
@@ -44,7 +44,7 @@ impl LoadingDrawer {
 }
 impl LoadingDrawer {
         // Future todo note: When making scrolling behaviour, slice the messages whenever window is resized and when a new message is added, so they will be presliced for printing.
-        pub fn draw_print_history(&self, element: &DrawableElementFill, data: &mut LoadingData) {
+        pub fn draw_print_history(&self, element: &DrawableElementFill, data: &mut LoadingData) -> usize {
             data.flush_print_buffer();
             let history: &VecDeque<String> = &data.print_history;
             let sz: V2Usz = get_terminal_size();
@@ -56,7 +56,7 @@ impl LoadingDrawer {
             };
             if sz.y <= data.list.len() + 1 { // Accounting for both loading elemenets and splitter line
                 println!("\x1b[1EWindow is too small to print history\x1b[0K"); // Reset cursor to next line and foribly print error, also clear to end of line
-                return;
+                return 0;
             }
             let mut remaining_height: usize = LoadingDrawer::get_remaining_height(data);
 
@@ -77,10 +77,11 @@ impl LoadingDrawer {
             };
 
             std::io::stdout().flush().unwrap();
+            return remaining_height;
         }
 
 
-    pub fn draw_loader(&self, element: &DrawableElement, data: &mut LoadingData) {
+    pub fn draw_loader(&self, element: &DrawableElement, data: &mut LoadingData) -> usize {
         let sz: V2Usz = get_terminal_size();
         for (i, elem) in data.list.iter().enumerate() {
             let line = match element.pos {
@@ -129,5 +130,6 @@ impl LoadingDrawer {
             print!("\x1B[0K"); // Erase from cursor to end of line (Only necessary when whole line is not written!)
             std::io::stdout().flush().unwrap(); // Flush all commands, since no new line is written
         }
+        return data.list.len(); // TODO: Fix this length when truncating due to lack of space
     }
 }
