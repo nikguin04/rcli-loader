@@ -6,40 +6,38 @@ use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use lazy_static::lazy_static;
 use tokio::{task::JoinHandle, time::sleep};
 
-use crate::{drawer_helper::LoadingColorScheme, loading_drawer::LoadingDrawer, loading_element::LoadingElement, terminal_helper::get_terminal_size};
+use crate::{drawer_helper::LoadingColorScheme, loading_data::LoadingData, loading_drawer::LoadingDrawer, loading_element::LoadingElement, terminal_helper::get_terminal_size};
 
 lazy_static! {
     static ref PRINT_BUFFER: Arc<Mutex<VecDeque<String>>> = Arc::from(Mutex::from(VecDeque::new()));
     pub static ref LOADING_HANDLER: Mutex<LoadingHandler> = Mutex::from(LoadingHandler { 
-        list: Vec::new(),
-        print_history: VecDeque::new(),
-        print_buffer: PRINT_BUFFER.clone(),
-        max_history: 50, // TODO: Make setter
-        stdin_enabled: true,
+        data: LoadingData {
+            list: Vec::new(),
+            print_history: VecDeque::new(),
+            print_buffer: PRINT_BUFFER.clone(),
+            max_history: 50, // TODO: Make setter
+            stdin_enabled: true
+        },
         drawer: LoadingDrawer::default()
     });
 }
 
 pub struct LoadingHandler {
-    pub list: Vec<Arc<RwLock<LoadingElement>>>,
-    pub print_history: VecDeque<String>,
-    print_buffer: Arc<Mutex<VecDeque<String>>>,
-    max_history: usize,
-    pub stdin_enabled: bool,
+    pub data: LoadingData,
     pub drawer: LoadingDrawer,
 
 }
 impl LoadingHandler {
     pub fn add_loading_element(&mut self, l_elem: Arc<RwLock<LoadingElement>>) {
-        self.list.push(l_elem);
+        self.data.list.push(l_elem);
     }
     pub fn set_stdin_mode(&mut self, enabled: bool) {
         if enabled { enable_raw_mode().unwrap(); } else { disable_raw_mode().unwrap(); } // TODO: handle panic
-        self.stdin_enabled = enabled;
+        self.data.stdin_enabled = enabled;
     }
 
     fn handle_loader_tick(&mut self) {
-        self.drawer.draw_all(&mut self);
+        self.drawer.draw_all(&mut self.data);
         //self.handle_stdin();
     }
 
@@ -66,16 +64,8 @@ impl LoadingHandler {
         })
     }
 
-    pub fn flush_print_buffer(&mut self) {
-        let mut buf = self.print_buffer.lock().unwrap();
-        while !buf.is_empty() {
-            if self.print_history.len() >= self.max_history { self.print_history.pop_back(); }
-            self.print_history.push_front(buf.pop_front().unwrap_or(String::from("ERROR WHEN FLUSHING PRINT BUFFER!")));
-        }
-    }
-
     fn init(&mut self) {
-        self.set_stdin_mode(self.stdin_enabled); // Trigger the stdin raw mode (or not)
+        self.set_stdin_mode(self.data.stdin_enabled); // Trigger the stdin raw mode (or not)
     }
 }
 
