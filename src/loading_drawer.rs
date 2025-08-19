@@ -1,6 +1,6 @@
 use std::{collections::{HashMap, VecDeque}, default, hash::Hash, io::{stdout, Write}, sync::{Arc, Mutex, RwLock}, thread, time::Duration, vec::Vec};
 
-use crate::{draw_ordering::{DrawOrdering, DrawableElement, DrawableElementFill, DRAW_PRINT_HISTORY, LOADING_BAR}, drawer_helper::{print_splitter_line, set_terminal_pos, LoadingColorScheme, Position}, loading_data::LoadingData, loading_element::LoadingElement, loading_handler::LoadingHandler, terminal_helper::{get_terminal_size, V2Usz}};
+use crate::{draw_ordering::{DrawOrdering, DrawableElement, DrawableElementFill, DRAW_INPUT_FIELD, DRAW_PRINT_HISTORY, LOADING_BAR}, drawer_helper::{print_splitter_line, set_terminal_pos, LoadingColorScheme, Position}, loading_data::LoadingData, loading_element::LoadingElement, loading_handler::LoadingHandler, terminal_helper::{get_terminal_size, V2Usz}};
 const PROGRESS_CHARS_COUNT: u8 = 8;
 static PROGRESS_CHARS: &'static [char] = &['\u{258F}', '\u{258E}', '\u{258D}', '\u{258C}', '\u{258B}', '\u{258A}', '\u{2589}', '\u{2588}'];
 
@@ -17,7 +17,7 @@ impl LoadingDrawer {
             color_scheme: None,         
             allocated_rows_loadingbars: 5, // TODO: Make dynamically adjust, or change by setter
             draw_ordering: DrawOrdering {
-                elements: vec![LOADING_BAR], // TODO: Make input field
+                elements: vec![LOADING_BAR, DRAW_INPUT_FIELD], // TODO: Make input field
                 fill_element: DRAW_PRINT_HISTORY
             },
             used_lines: HashMap::from([(Position::BOTTOM, 0), (Position::TOP, 0)])
@@ -133,5 +133,14 @@ impl LoadingDrawer {
         }
         stdout().flush().unwrap(); // Flush all commands, since no new line is written
         return data.list.len(); // TODO: Fix this length when truncating due to lack of space
+    }
+
+
+    pub fn draw_input_field(&self, element: &DrawableElement, data: &mut LoadingData, _offset: usize) -> usize {
+        let offset = match element.pos { Position::BOTTOM => _offset - 2, Position::TOP => _offset };
+        set_terminal_pos(V2Usz { x: 0, y: offset });
+        print!("Please input following: XYZ\x1b[0K\nHere goes the input\x1b[0K"); // Always clear rest of line when making a new line
+        stdout().flush().unwrap(); // Flush all text
+        return 2;
     }
 }
