@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, io::Write, sync::{Arc, Mutex, RwLock}, thread, time::Duration, vec::Vec};
+use std::{collections::{HashMap, VecDeque}, default, hash::Hash, io::Write, sync::{Arc, Mutex, RwLock}, thread, time::Duration, vec::Vec};
 
 use crate::{draw_ordering::{DrawOrdering, DrawableElement, DrawableElementFill, DRAW_PRINT_HISTORY, LOADING_BAR}, drawer_helper::{print_splitter_line, set_terminal_pos, LoadingColorScheme, Position}, loading_data::LoadingData, loading_element::LoadingElement, loading_handler::LoadingHandler, terminal_helper::{get_terminal_size, V2Usz}};
 const PROGRESS_CHARS_COUNT: u8 = 8;
@@ -7,7 +7,8 @@ static PROGRESS_CHARS: &'static [char] = &['\u{258F}', '\u{258E}', '\u{258D}', '
 pub struct LoadingDrawer {
     color_scheme: Option<Box<dyn LoadingColorScheme + Send + Sync>>,
     allocated_rows_loadingbars: usize,
-    draw_ordering: DrawOrdering
+    draw_ordering: DrawOrdering,
+    used_lines: HashMap<Position, usize>
 }
 
 impl LoadingDrawer {
@@ -18,18 +19,29 @@ impl LoadingDrawer {
             draw_ordering: DrawOrdering {
                 elements: vec![LOADING_BAR], // TODO: Make input field
                 fill_element: DRAW_PRINT_HISTORY
-            }
+            },
+            used_lines: HashMap::from([(Position::BOTTOM, 0), (Position::TOP, 0)])
         }
     }
     
     pub fn draw_all(&mut self, data: &mut LoadingData) {
-        self.draw_ordering.elements.iter().for_each(|elem| {
-            let lines_used: usize = (elem.draw)(self, elem, data);
-        });
-        let lines_used = (self.draw_ordering.fill_element.draw)(self, &(self.draw_ordering.fill_element), data);
+        self.reset_lines_used();
+        for elem in &self.draw_ordering.elements {
+            let terminal_size = &get_terminal_size();
+            let offset_height = self.used_lines.get(&elem.pos).unwrap();
+            let lines_used: usize = (elem.draw)(self, elem, data, *offset_height);
+            print_splitter_line(terminal_size, *offset_height + lines_used);
+            *self.used_lines.get_mut(&elem.pos).unwrap() += lines_used + 1; // Adjust offset height
+        };
+        let _lines_used = (self.draw_ordering.fill_element.draw)(self, &(self.draw_ordering.fill_element), data, *self.used_lines.get(&Position::TOP).unwrap());
+        
     }
 
-    
+    fn reset_lines_used(&mut self) {
+        for (_k, v) in self.used_lines.iter_mut() {
+            *v = 0;
+        }
+    }
 
     pub fn set_colorscheme(&mut self, color_scheme: Box<dyn LoadingColorScheme + Send + Sync>) {
         self.color_scheme = Some(color_scheme);
@@ -44,25 +56,16 @@ impl LoadingDrawer {
 }
 impl LoadingDrawer {
         // Future todo note: When making scrolling behaviour, slice the messages whenever window is resized and when a new message is added, so they will be presliced for printing.
-        pub fn draw_print_history(&self, element: &DrawableElementFill, data: &mut LoadingData) -> usize {
+        pub fn draw_print_history(&self, element: &DrawableElementFill, data: &mut LoadingData, offset: usize) -> usize {
             data.flush_print_buffer();
             let history: &VecDeque<String> = &data.print_history;
             let sz: V2Usz = get_terminal_size();
 
-            // TODO: FIX OFFSET
-            let offset: usize = match Position::BOTTOM { // Offset height for printing history, which our terminal cursor must jump to, as to avoid overwriting loading bars
-                Position::BOTTOM => 0,
-                Position::TOP => data.list.len() + 1
-            };
             if sz.y <= data.list.len() + 1 { // Accounting for both loading elemenets and splitter line
                 println!("\x1b[1EWindow is too small to print history\x1b[0K"); // Reset cursor to next line and foribly print error, also clear to end of line
                 return 0;
             }
             let mut remaining_height: usize = LoadingDrawer::get_remaining_height(data);
-
-            // TODO: FIX OFFSET
-            print_splitter_line(&sz, match Position::BOTTOM { Position::BOTTOM => remaining_height, Position::TOP => offset }); // Print either at top or bottom of message "box" depending on the wanted position anchoring
-            remaining_height -= 1;
 
             // Iteratte over each history element, TODO: feature: this should be line indexed already so we can scroll up, and should not just start at first history element and line
             'outer: for prt_stmnt in history.iter() { // Note: due to vecdeque, we already iterate from front to back
@@ -81,12 +84,12 @@ impl LoadingDrawer {
         }
 
 
-    pub fn draw_loader(&self, element: &DrawableElement, data: &mut LoadingData) -> usize {
+    pub fn draw_loader(&self, element: &DrawableElement, data: &mut LoadingData, offset: usize) -> usize {
         let sz: V2Usz = get_terminal_size();
         for (i, elem) in data.list.iter().enumerate() {
             let line = match element.pos {
-                Position::TOP => i+1,
-                Position::BOTTOM => sz.y as usize - i // This effectively reverses position of queue when printed
+                Position::TOP => offset + i + 1,
+                Position::BOTTOM => offset + sz.y as usize - i // This effectively reverses position of queue when printed
             };
             print!("\x1B[{line};{column}H", line=line, column=0);
             // Minus with two as that the reported screen size is two chars too big and will wrap. WARNING: Can cause errors if screen size is below 2 width?

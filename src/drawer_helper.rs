@@ -1,6 +1,6 @@
 use crate::{loading_element::LoadingElement, terminal_helper::V2Usz};
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Hash, PartialEq, Eq)]
 pub enum Position {
     TOP,BOTTOM
 }
