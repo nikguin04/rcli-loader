@@ -28,14 +28,20 @@ impl LoadingDrawer {
         self.reset_lines_used();
         let terminal_size = &get_terminal_size();
         for elem in &self.draw_ordering.elements {
-            let offset_height = self.used_lines.get(&elem.pos).unwrap();
-            let lines_used: usize = (elem.draw)(self, elem, data, *offset_height);
-            print_splitter_line(terminal_size, *offset_height + lines_used);
+            let offset_height = match elem.pos {
+                Position::TOP => *self.used_lines.get(&Position::TOP).unwrap(),
+                Position::BOTTOM => terminal_size.y - self.used_lines.get(&Position::BOTTOM).unwrap()
+            };
+            let lines_used: usize = (elem.draw)(self, elem, data, offset_height);
+            print_splitter_line(
+                terminal_size,
+                match elem.pos { Position::TOP => offset_height + lines_used, Position::BOTTOM => offset_height - lines_used - 1} 
+            );
             *self.used_lines.get_mut(&elem.pos).unwrap() += lines_used + 1; // Adjust offset height
         };
         let top = *self.used_lines.get(&Position::TOP).unwrap();
         let bot = *self.used_lines.get(&Position::BOTTOM).unwrap();
-        let _lines_used = (self.draw_ordering.fill_element.draw)(self, &(self.draw_ordering.fill_element), data, top, terminal_size.y-top-bot); // WARNING: This can cause a usize negative (crash)
+        let _lines_used = (self.draw_ordering.fill_element.draw)(self, &(self.draw_ordering.fill_element), data, top, terminal_size.y-top-bot-1); // WARNING: This can cause a usize negative (crash)
         
     }
 
@@ -79,13 +85,11 @@ impl LoadingDrawer {
         }
 
 
-    pub fn draw_loader(&self, element: &DrawableElement, data: &mut LoadingData, offset: usize) -> usize {
+    pub fn draw_loader(&self, element: &DrawableElement, data: &mut LoadingData, _offset: usize) -> usize {
         let sz: V2Usz = get_terminal_size();
+        let offset = match element.pos { Position::BOTTOM => _offset - data.list.len(), Position::TOP => _offset };
         for (i, elem) in data.list.iter().enumerate() {
-            let line = match element.pos {
-                Position::TOP => offset + i,
-                Position::BOTTOM => offset + sz.y as usize - i // This effectively reverses position of queue when printed
-            };
+            let line = offset + i;
             set_terminal_pos(V2Usz { x: 0, y: line });
             // Minus with two as that the reported screen size is two chars too big and will wrap. WARNING: Can cause errors if screen size is below 2 width?
             let mut unused_char_count: usize = sz.x as usize - 2; // Defines as usize, as all of the string.len() returns usize, so no bulky conversions later
