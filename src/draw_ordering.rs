@@ -8,7 +8,7 @@ pub struct DrawableElement {
 }
 #[derive(Copy, Clone)]
 pub struct DrawableElementFill {
-    pub draw: fn(&LoadingDrawer, &Self, &mut LoadingData, offset: usize) -> usize
+    pub draw: fn(&LoadingDrawer, &Self, &mut LoadingData, offset: usize, remaining_height: usize) -> usize
 }
 
 pub static LOADING_BAR: DrawableElement = DrawableElement { pos: Position::TOP, draw: LoadingDrawer::draw_loader };
