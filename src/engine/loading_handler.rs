@@ -55,13 +55,11 @@ impl LoadingHandler {
         let stdin_buffer: Arc<Mutex<String>> = self.data.stdin_buffer.clone();
         thread::spawn(move || {
             loop {
-                println!("Locking");
                 let mut stdin = stdin().lock();
                 let mut buffer = [0; 512];
                 while stdin.read(&mut buffer[..]).unwrap_or(0) > 0 {
                     let mut lock = stdin_buffer.lock().unwrap();
-                    println!("Locked");
-                    lock.push_str(str::from_utf8(&buffer[..]).unwrap());
+                    lock.push_str(str::from_utf8(&buffer[..]).unwrap()); // TODO: WARNING: This has caused a crash when unwrapping! Wont fix yet as i want to reproduce it
                 }
                 thread::sleep(Duration::from_millis(2));
             }
