@@ -1,12 +1,13 @@
 
 
-use std::{collections::VecDeque, rc::Rc, sync::{Arc, Mutex, RwLock}, thread::{self}, time::Duration};
+use std::{collections::VecDeque, sync::{Arc, Mutex, RwLock}, thread::{self}, time::Duration};
 
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use lazy_static::lazy_static;
 use tokio::{task::JoinHandle, time::sleep};
 
-use crate::{drawer_helper::LoadingColorScheme, loading_data::LoadingData, loading_drawer::LoadingDrawer, loading_element::LoadingElement, terminal_helper::get_terminal_size};
+use crate::{drawing::loading_drawer::LoadingDrawer, structure::{loading_data::LoadingData, loading_element::LoadingElement}};
+
 
 lazy_static! {
     static ref PRINT_BUFFER: Arc<Mutex<VecDeque<String>>> = Arc::from(Mutex::from(VecDeque::new()));

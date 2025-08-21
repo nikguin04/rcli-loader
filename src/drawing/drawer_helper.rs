@@ -1,6 +1,6 @@
 use std::io::{stdout, Write};
 
-use crate::{loading_element::LoadingElement, terminal_helper::V2Usz};
+use crate::{structure::loading_element::LoadingElement, drawing::terminal_helper::V2Usz};
 
 #[derive(Copy, Clone, Hash, PartialEq, Eq)]
 pub enum Position {

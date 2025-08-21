@@ -1,9 +1,8 @@
-use std::{sync::{Arc, RwLock}, time::{self, Duration}};
+use std::sync::{Arc, RwLock};
 use humansize::{format_size, DECIMAL};
 
 mod modules;
-use rcli_loader::{drawer_helper::{erase_screen, hide_cursor, Position, RedGreenScheme}, loading_element::LoadingElement, loading_handler::LOADING_HANDLER};
-use tokio::time::sleep;
+use rcli_loader::{drawing::drawer_helper::{erase_screen, hide_cursor, RedGreenScheme}, engine::loading_handler::LOADING_HANDLER, structure::loading_element::LoadingElement};
 
 use crate::modules::{example_download::sim_download, example_load::sim_load};
 

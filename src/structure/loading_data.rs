@@ -1,6 +1,6 @@
 use std::{collections::VecDeque, sync::{Arc, Mutex, RwLock}};
 
-use crate::loading_element::LoadingElement;
+use crate::structure::loading_element::LoadingElement;
 
 
 

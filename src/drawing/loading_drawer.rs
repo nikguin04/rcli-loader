@@ -1,12 +1,12 @@
-use std::{collections::{HashMap, VecDeque}, default, hash::Hash, io::{stdout, Write}, sync::{Arc, Mutex, RwLock}, thread, time::Duration, vec::Vec};
+use std::{collections::{HashMap, VecDeque}, io::{stdout, Write}, sync::Arc};
 
-use crate::{draw_ordering::{DrawOrdering, DrawableElement, DrawableElementFill, DRAW_INPUT_FIELD, DRAW_PRINT_HISTORY, LOADING_BAR}, drawer_helper::{print_splitter_line, set_terminal_pos, LoadingColorScheme, Position}, loading_data::LoadingData, loading_element::LoadingElement, loading_handler::LoadingHandler, terminal_helper::{get_terminal_size, V2Usz}};
+use crate::{drawing::{drawer_helper::{print_splitter_line, set_terminal_pos, LoadingColorScheme, Position}, terminal_helper::{get_terminal_size, V2Usz}}, structure::{draw_ordering::{DrawOrdering, DrawableElement, DrawableElementFill, DRAW_INPUT_FIELD, DRAW_PRINT_HISTORY, LOADING_BAR}, loading_data::LoadingData}};
+
 const PROGRESS_CHARS_COUNT: u8 = 8;
 static PROGRESS_CHARS: &'static [char] = &['\u{258F}', '\u{258E}', '\u{258D}', '\u{258C}', '\u{258B}', '\u{258A}', '\u{2589}', '\u{2588}'];
 
 pub struct LoadingDrawer {
     color_scheme: Option<Box<dyn LoadingColorScheme + Send + Sync>>,
-    allocated_rows_loadingbars: usize,
     draw_ordering: DrawOrdering,
     used_lines: HashMap<Position, usize>
 }
@@ -15,7 +15,6 @@ impl LoadingDrawer {
     pub fn default() -> LoadingDrawer {
         LoadingDrawer {
             color_scheme: None,         
-            allocated_rows_loadingbars: 5, // TODO: Make dynamically adjust, or change by setter
             draw_ordering: DrawOrdering {
                 elements: vec![LOADING_BAR, DRAW_INPUT_FIELD], // TODO: Make input field
                 fill_element: DRAW_PRINT_HISTORY
@@ -57,7 +56,7 @@ impl LoadingDrawer {
 }
 impl LoadingDrawer {
         // Future todo note: When making scrolling behaviour, slice the messages whenever window is resized and when a new message is added, so they will be presliced for printing.
-        pub fn draw_print_history(&self, element: &DrawableElementFill, data: &mut LoadingData, offset: usize, _remaining_height: usize) -> usize {
+        pub fn draw_print_history(&self, _element: &DrawableElementFill, data: &mut LoadingData, offset: usize, _remaining_height: usize) -> usize {
             data.flush_print_buffer();
             let history: &VecDeque<String> = &data.print_history;
             let sz: V2Usz = get_terminal_size();
@@ -136,7 +135,7 @@ impl LoadingDrawer {
     }
 
 
-    pub fn draw_input_field(&self, element: &DrawableElement, data: &mut LoadingData, _offset: usize) -> usize {
+    pub fn draw_input_field(&self, element: &DrawableElement, _data: &mut LoadingData, _offset: usize) -> usize {
         let offset = match element.pos { Position::BOTTOM => _offset - 2, Position::TOP => _offset };
         set_terminal_pos(V2Usz { x: 0, y: offset });
         print!("Please input following: XYZ\x1b[0K\nHere goes the input\x1b[0K"); // Always clear rest of line when making a new line

@@ -1,4 +1,4 @@
-use crate::{drawer_helper::Position, loading_data::LoadingData, loading_drawer::{LoadingDrawer}, loading_handler::LoadingHandler};
+use crate::{drawing::{drawer_helper::Position, loading_drawer::LoadingDrawer}, structure::loading_data::LoadingData};
 
 
 #[derive(Copy, Clone)]
