@@ -10,6 +10,7 @@ pub struct LoadingData {
     pub print_buffer: Arc<Mutex<VecDeque<String>>>,
     pub max_history: usize,
     pub stdin_enabled: bool,
+    pub stdin_buffer: Arc<Mutex<String>>
 }
 
 impl LoadingData {

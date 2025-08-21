@@ -135,10 +135,10 @@ impl LoadingDrawer {
     }
 
 
-    pub fn draw_input_field(&self, element: &DrawableElement, _data: &mut LoadingData, _offset: usize) -> usize {
+    pub fn draw_input_field(&self, element: &DrawableElement, data: &mut LoadingData, _offset: usize) -> usize {
         let offset = match element.pos { Position::BOTTOM => _offset - 2, Position::TOP => _offset };
         set_terminal_pos(V2Usz { x: 0, y: offset });
-        print!("Please input following: XYZ\x1b[0K\nHere goes the input\x1b[0K"); // Always clear rest of line when making a new line
+        print!("Please input following: XYZ\x1b[0K\nHere goes the input: {}\x1b[0K", data.stdin_buffer.lock().unwrap()); // Always clear rest of line when making a new line
         stdout().flush().unwrap(); // Flush all text
         return 2;
     }
