@@ -4,6 +4,8 @@ use std::{collections::VecDeque, io::{stdin, Read}, sync::{Arc, Mutex, RwLock}, 
 
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use lazy_static::lazy_static;
+
+#[cfg(feature = "e_tokio")]
 use tokio::{task::JoinHandle, time::sleep};
 
 use crate::{drawing::loading_drawer::LoadingDrawer, structure::{loading_data::LoadingData, loading_element::LoadingElement}};
@@ -75,6 +77,8 @@ impl LoadingHandler {
             thread::sleep(Duration::from_millis(100));
         }
     }
+
+    #[cfg(feature = "e_tokio")]
     pub fn spawn_loader_engine(mut self) -> JoinHandle<()> {
         //drop(self); // We need to make sure that we take ownership of the loading drawer, to then lock it again in the new async tgread
         return tokio::spawn(async move {
