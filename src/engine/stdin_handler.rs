@@ -1,5 +1,5 @@
 
-use std::{io::{stdin, Read}, process::exit, sync::{Arc, Mutex}, thread, time::Duration};
+use std::{fmt::Debug, io::{stdin, Read}, process::exit, sync::{Arc, Mutex}, thread, time::Duration};
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use crate::engine::loading_handler::{rcli_print, LoadingHandler};
 
@@ -56,7 +56,11 @@ impl LoadingHandler {
             let mut split_ws = elem.split_whitespace();
             let first = split_ws.next().unwrap();
             match first {
-                "test" => { rcli_print(format!("Executed the test command! {:?}", split_ws)); },
+                "test" => {
+                    let mut fmt = String::new();
+                    split_ws.for_each( |e| { fmt.push_str(format!("{}, ", e).as_str())}); // Note: Here this first element (command) should already be skipped
+                    rcli_print(format!("Executed the test command! {:?}", fmt ))
+                },
                 _ => { rcli_print(format!("Command not found: {}", first.to_string())); }
             }
         };
