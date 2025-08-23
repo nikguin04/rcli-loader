@@ -1,8 +1,8 @@
 use std::{io::{Write}, sync::{Arc, RwLock}};
 
 
-use rcli_loader::structure::loading_element::LoadingElement;
-use reqwest::Client;
+use rcli_loader::{engine::loading_handler::rcli_print, structure::loading_element::LoadingElement};
+use reqwest::{Client, StatusCode};
 use tokio::task::JoinHandle;
 
 
@@ -15,8 +15,12 @@ pub fn sim_download(loading_element: Arc<RwLock<LoadingElement>>) -> JoinHandle<
         let client = Client::new();
         let mut response = match client.get(url).send().await {
             Ok(res) => res,
-            Err(_error) => { print!("Error creating request"); return } // TODO: Do a proper callback here. Perhaps make loader able to display ERROR instead of loading bar if not cleared?
+            Err(error) => { rcli_print(format!("Error creating request: {:?}", error)); return } // TODO: Do a proper callback here. Perhaps make loader able to display ERROR instead of loading bar if not cleared?
         };
+        match response.status() {
+            StatusCode::OK => {},
+            _ => { rcli_print(format!("Response error, status code: {}", response.status().as_str())); return; }
+        }
         
 
         let total_size = response
@@ -24,7 +28,7 @@ pub fn sim_download(loading_element: Arc<RwLock<LoadingElement>>) -> JoinHandle<
             .unwrap_or(0);
         loading_element.write().unwrap().set_max(total_size as usize);
 
-        println!("Total size: {} bytes", total_size);
+        //println!("Total size: {} bytes", total_size);
 
         let mut file = std::fs::File::create("target/output.zip").unwrap();
 
