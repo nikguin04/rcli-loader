@@ -17,6 +17,7 @@ async fn main() {
 
     
 
+    // TODO: Make a ::new functions for this
     let le1= Arc::from(RwLock::from(LoadingElement::new(100, Box::from("Loader 1"), None )));
     let le2= Arc::from(RwLock::from(LoadingElement::new(300, Box::from("Loader 2"), None )));
     let le3= Arc::from(RwLock::from(LoadingElement::new(1000, Box::from("Loader 123"), None )));

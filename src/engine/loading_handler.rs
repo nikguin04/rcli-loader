@@ -41,6 +41,7 @@ impl LoadingHandler {
     }
 
     fn handle_loader_tick(&mut self) {
+        self.handle_stdin_tick();
         self.drawer.draw_all(&mut self.data);
     }
 

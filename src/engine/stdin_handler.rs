@@ -36,4 +36,19 @@ impl LoadingHandler {
         }
         self.data.stdin_enabled = enabled;
     }
+
+    pub fn handle_stdin_tick(&mut self) {
+        let mut stdin_buffer = self.data.stdin_buffer.lock().unwrap();
+        let split: Vec<&str> = stdin_buffer.split("\r").collect(); // Slit as carriage return, it seems raw terminal mode prints \r instead of \n
+        if split.len() == 1 { // In this case, no newline/enter is present, we will return as user does not want to execute any command yet
+            return;
+        }
+        let iterator = split.iter().take(split.len()-1);
+        iterator.for_each(|elem| {
+            
+        });
+        let last = split.last().unwrap().to_string(); // Need to duplicate the last element to drop split (minor inefficiency)
+        stdin_buffer.clear();
+        stdin_buffer.push_str(&last);
+    }
 }
