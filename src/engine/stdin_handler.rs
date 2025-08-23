@@ -1,7 +1,7 @@
 
-use std::{io::{stdin, Read}, process::exit, sync::{Arc, Mutex}, thread, time::Duration};
+use std::{io::{stdin, Read}, iter, process::exit, sync::{Arc, Mutex}, thread, time::Duration};
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
-use crate::engine::loading_handler::LoadingHandler;
+use crate::engine::loading_handler::{rcli_print, LoadingHandler};
 
 impl LoadingHandler {
     
@@ -38,17 +38,30 @@ impl LoadingHandler {
     }
 
     pub fn handle_stdin_tick(&mut self) {
-        let mut stdin_buffer = self.data.stdin_buffer.lock().unwrap();
-        let split: Vec<&str> = stdin_buffer.split("\r").collect(); // Slit as carriage return, it seems raw terminal mode prints \r instead of \n
-        if split.len() == 1 { // In this case, no newline/enter is present, we will return as user does not want to execute any command yet
+        let bufclone = self.data.stdin_buffer.clone();
+        let mut stdin_buffer = bufclone.lock().unwrap();
+        println!("{}", stdin_buffer);
+        let split = &stdin_buffer.split('\r'); // Slit as carriage return, it seems raw terminal mode prints \r instead of \n
+        if split.count() == 1 { // In this case, no newline/enter is present, we will return as user does not want to execute any command yet
             return;
         }
-        let iterator = split.iter().take(split.len()-1);
-        iterator.for_each(|elem| {
-            
-        });
-        let last = split.last().unwrap().to_string(); // Need to duplicate the last element to drop split (minor inefficiency)
-        stdin_buffer.clear();
-        stdin_buffer.push_str(&last);
+        
+        println!("{:?}", split);
+        // let last = split.last().unwrap().to_string(); // Need to duplicate the last element to drop split (minor inefficiency)
+        // let len = split.count()-1;
+
+        // let iterator = split.into_iter().take(len);
+        // println!("{:?}", iterator);
+        // iterator.for_each(|elem| {
+        //     let mut split_ws = elem.split_whitespace();
+        //     let first = split_ws.next().unwrap();
+        //     match first {
+        //         "test" => { rcli_print(format!("Executed the test command! {:?}", split_ws)); },
+        //         _ => { rcli_print(format!("Command not found: {}", first)); }
+        //     }
+        // });
+        
+        // stdin_buffer.clear();
+        // stdin_buffer.push_str(&last);
     }
 }
