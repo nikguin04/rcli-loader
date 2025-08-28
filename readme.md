@@ -69,7 +69,7 @@
 
 [![rcli-loader product screenshot][product-screenshot]](https://github.com/nikguin04/rcli-loader)
 
-The RCLI-Loader crate **(coming soon)** is a Rust CLI manager built for versatile monitoring of the progress for running tasks, either quick or slow!
+The RCLI-Loader crate is a Rust CLI manager built for versatile monitoring of the progress for running tasks, either quick or slow!
 <br /> A screenshot for an examplified implementation of the features can be seen below, including:
  - Names
  - Progress indicator (numbered)
