@@ -7,7 +7,6 @@ authors = ["Niklas Jensen <nikguin04@proton.me>"]
 description = "RCLI-loader: The Rust client line interface loader crate, a utility built for versatile monitoring of the progress for running tasks"
 readme = "readme.md"
 repository = "https://github.com/nikguin04/rcli-loader"
-license = "GNU GENERAL PUBLIC LICENSE Version 3"
 license-file = "LICENSE"
 keywords = ["cli", "async", "terminal"]
 categories = ["asynchronous", "command-line-interface"]
