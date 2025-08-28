@@ -13,7 +13,6 @@ struct LoadingDrawer {
     print_history: VecDeque<String>,
     loadingbar_anchor_position: Position,
     max_history: usize,
-    allocated_rows_loadingbars: usize
 }
 #[allow(private_interfaces)]
 fn get_loading_drawer() -> MutexGuard<'static, LoadingDrawer> {
@@ -25,7 +24,6 @@ fn get_loading_drawer() -> MutexGuard<'static, LoadingDrawer> {
                 print_history: VecDeque::new(),
                 loadingbar_anchor_position: Position::BOTTOM, // TODO: Make setter
                 max_history: 50, // TODO: Make setter
-                allocated_rows_loadingbars: 5 // TODO: Make dynamically adjust, or change by setter
             }
         )
     ).lock().unwrap()
