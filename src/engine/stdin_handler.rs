@@ -1,7 +1,9 @@
 
-use std::{fmt::Debug, io::{stdin, Read}, process::exit, sync::{Arc, Mutex}, thread, time::Duration};
+use std::{fmt::Debug, io::{stdin, Read, Stdin}, pin::Pin, process::exit, sync::{Arc, Mutex}, task::{Context, Poll, Waker}, thread, time::Duration};
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
-use crate::engine::loading_handler::{rcli_print, LoadingHandler};
+use tokio::runtime::Runtime;
+use crate::engine::{loading_handler::{rcli_print, LoadingHandler}};
+use std::future::Future;
 
 impl LoadingHandler {
     
@@ -67,5 +69,58 @@ impl LoadingHandler {
         
         stdin_buffer.clear();
         stdin_buffer.push_str(&last);
+    }
+
+    // TODO:  Make cfg e_tokio
+    pub fn get_input(&mut self, input: &str) -> Result<String, &'static str> {
+        let future = StdinFuture::new();
+        match &self.data.stdin_input_future_state {
+            Some(x) => {
+                rcli_print(String::from("Error getting input, another input request already exists! returning empty string"));
+                return Err("")
+            }
+            None => {
+                // TODO: use input
+                self.data.stdin_input_future_state = Some(future.state.clone());
+            }
+        }
+        
+        
+        let result: String = Runtime::new().unwrap().block_on::<StdinFuture>(future);
+        return Ok(result)
+    }
+}
+
+pub struct StdinFuture {
+    state: Arc<Mutex<StdinState>>,
+}
+pub struct StdinState {
+    stdin_str: Option<String>, // Stdin_str is provided by the handle_stdin_tick, is none, no input yet, otherwise, we have input
+    waker: Option<Waker>
+}
+
+impl StdinFuture {
+    pub fn new() -> StdinFuture {
+        StdinFuture {
+            state: Arc::from(Mutex::from(StdinState {
+                stdin_str: None, waker: None
+            }))
+        }
+    }
+}
+impl Future for StdinFuture {
+    type Output = String;
+
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        let mut state = self.state.lock().unwrap();
+        return match &state.stdin_str {
+            Some(input) => {
+                Poll::Ready(input.clone())
+            },
+            None => {
+                state.waker = Some(cx.waker().clone());
+                Poll::Pending
+            }
+        }
     }
 }

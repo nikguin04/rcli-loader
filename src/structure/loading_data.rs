@@ -1,6 +1,6 @@
 use std::{collections::VecDeque, sync::{Arc, Mutex, RwLock}};
 
-use crate::structure::loading_element::LoadingElement;
+use crate::{engine::stdin_handler::{StdinFuture, StdinState}, structure::loading_element::LoadingElement};
 
 
 
@@ -10,7 +10,8 @@ pub struct LoadingData {
     pub print_buffer: Arc<Mutex<VecDeque<String>>>,
     pub max_history: usize,
     pub stdin_enabled: bool,
-    pub stdin_buffer: Arc<Mutex<String>>
+    pub stdin_buffer: Arc<Mutex<String>>,
+    pub stdin_input_future_state: Option<Arc<Mutex<StdinState>>>
 }
 
 impl LoadingData {

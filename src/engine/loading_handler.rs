@@ -19,7 +19,8 @@ lazy_static! {
             print_buffer: PRINT_BUFFER.clone(),
             max_history: 50, // TODO: Make setter
             stdin_enabled: true,
-            stdin_buffer: Arc::from(Mutex::from(String::new()))
+            stdin_buffer: Arc::from(Mutex::from(String::new())),
+            stdin_input_future_state: None
         },
         LoadingDrawer::default()
     ));
