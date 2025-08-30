@@ -1,5 +1,5 @@
 
-use std::{fmt::Debug, io::{stdin, Read, Stdin}, pin::Pin, process::exit, sync::{Arc, Mutex}, task::{Context, Poll, Waker}, thread, time::Duration};
+use std::{fmt::Debug, io::{stdin, Read, Stdin}, ops::Deref, pin::Pin, process::exit, sync::{Arc, Mutex}, task::{Context, Poll, Waker}, thread, time::Duration};
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use tokio::runtime::Runtime;
 use crate::engine::{loading_handler::{rcli_print, LoadingHandler}};
@@ -53,35 +53,50 @@ impl LoadingHandler {
         }
         
         let last: String = split.last().unwrap().to_string(); // Need to duplicate the last element to drop split (minor inefficiency)
-        for elem in &split[..split.len()-1] {
-            if elem.len() == 0 { continue; }
-            let mut split_ws = elem.split_whitespace();
-            let first = split_ws.next().unwrap();
-            match first {
-                "test" => {
-                    let mut fmt = String::new();
-                    split_ws.for_each( |e| { fmt.push_str(format!("{}, ", e).as_str())}); // Note: Here this first element (command) should already be skipped
-                    rcli_print(format!("Executed the test command! {:?}", fmt ))
-                },
-                _ => { rcli_print(format!("Command not found: {}", first.to_string())); }
+        let returned_line = &split[..split.len()-1].get(0);
+        match returned_line {
+            None => { return; }
+            Some(line) => {
+                rcli_print(String::from(**line));
             }
-        };
+        }
+        // for elem in &split[..split.len()-1] {
+        //     if elem.len() == 0 { continue; }
+        //     let mut split_ws = elem.split_whitespace();
+        //     let first = split_ws.next().unwrap();
+        //     match first {
+        //         "test" => {
+        //             let mut fmt = String::new();
+        //             split_ws.for_each( |e| { fmt.push_str(format!("{}, ", e).as_str())}); // Note: Here this first element (command) should already be skipped
+        //             rcli_print(format!("Executed the test command! {:?}", fmt ))
+        //         },
+        //         _ => { rcli_print(format!("Command not found: {}", first.to_string())); }
+        //     }
+        // };
         
         stdin_buffer.clear();
         stdin_buffer.push_str(&last);
     }
 
+    
+}
+
+pub struct StdinHandler {
+    pub stdin_input_future_state: Arc<Mutex<Option<Arc<Mutex<StdinState>>>>>, // Same as LoadingData
+}
+
+impl StdinHandler {
     // TODO:  Make cfg e_tokio
-    pub fn get_input(&mut self, input: &str) -> Result<String, &'static str> {
-        let future = StdinFuture::new();
-        match &self.data.stdin_input_future_state {
-            Some(x) => {
+    pub fn get_input(&mut self, input_wanted: String) -> Result<String, &'static str> {
+        let future = StdinFuture::new(input_wanted);
+        match &self.stdin_input_future_state.lock().unwrap().into() {
+            Some(_x) => {
                 rcli_print(String::from("Error getting input, another input request already exists! returning empty string"));
                 return Err("")
             }
             None => {
                 // TODO: use input
-                self.data.stdin_input_future_state = Some(future.state.clone());
+                *(self.stdin_input_future_state.lock().unwrap()) = Some(future.state.clone()); // This is synced with loading handlers stdin tick
             }
         }
         
@@ -96,14 +111,15 @@ pub struct StdinFuture {
 }
 pub struct StdinState {
     stdin_str: Option<String>, // Stdin_str is provided by the handle_stdin_tick, is none, no input yet, otherwise, we have input
-    waker: Option<Waker>
+    waker: Option<Waker>,
+    input_wanted: String
 }
 
 impl StdinFuture {
-    pub fn new() -> StdinFuture {
+    pub fn new(input_wanted: String) -> StdinFuture {
         StdinFuture {
             state: Arc::from(Mutex::from(StdinState {
-                stdin_str: None, waker: None
+                stdin_str: None, waker: None, input_wanted: input_wanted
             }))
         }
     }

@@ -1,8 +1,9 @@
-use std::sync::{Arc, RwLock};
+use std::{ops::DerefMut, sync::{Arc, RwLock}, time::Duration};
 use humansize::{format_size, DECIMAL};
 
 mod modules;
-use rcli_loader::{drawing::drawer_helper::{erase_screen, hide_cursor, RedGreenScheme}, engine::loading_handler::{rcli_print, LOADING_HANDLER}, structure::loading_element::LoadingElement};
+use rcli_loader::{drawing::drawer_helper::{erase_screen, hide_cursor, RedGreenScheme}, engine::loading_handler::{rcli_print, spawn_loader_engine, LOADING_HANDLER, STDIN_HANDLER}, structure::loading_element::LoadingElement};
+use tokio::time::sleep;
 
 use crate::modules::{example_download::sim_download, example_load::sim_load};
 
@@ -35,14 +36,14 @@ async fn main() {
     sim_load(le2.clone(), 25);
     sim_load(le3.clone(), 100);
     sim_download(le4.clone());
+    drop(handler);
 
-    handler.spawn_loader_engine();
+    spawn_loader_engine();
     
-    //drop(handler);
     sleep(Duration::from_millis(2000)).await;
-    let mut handler = LOADING_HANDLER.lock().unwrap();
-    let input = handler.get_input("Give me a banana");
-    rcli_print(input.unwrap_or("default"));
+    let mut stdin_handler = STDIN_HANDLER.lock().unwrap();
+    let input = stdin_handler.get_input(String::from("Give me a banana"));
+    rcli_print(input.unwrap_or(String::from("default")));
     while (true) {
         sleep(Duration::from_millis(100)).await;
     }
