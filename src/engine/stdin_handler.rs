@@ -1,5 +1,5 @@
 
-use std::{fmt::Debug, io::{stdin, Read, Stdin}, ops::Deref, pin::Pin, process::exit, sync::{Arc, Mutex}, task::{Context, Poll, Waker}, thread, time::Duration};
+use std::{fmt::Debug, io::{stdin, Read, Stdin}, ops::Deref, pin::Pin, process::exit, sync::{Arc, Mutex, MutexGuard}, task::{Context, Poll, Waker}, thread, time::Duration};
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use tokio::runtime::Runtime;
 use crate::engine::{loading_handler::{rcli_print, LoadingHandler}};
@@ -18,12 +18,39 @@ impl LoadingHandler {
                     read = stdin.read(&mut buffer[..]).unwrap_or(0);
                     if read == 0 { break; }
                     let mut in_buf_lock = stdin_buffer.lock().unwrap();
-                    LoadingHandler::handle_static_input_commands(&buffer);
-                    in_buf_lock.push_str(str::from_utf8(&buffer[..read]).unwrap()); // TODO: WARNING: This has caused a crash when unwrapping! Wont fix yet as i want to reproduce it
+                    let buffer_slice = &buffer[..read];
+                    LoadingHandler::handle_static_input_commands(buffer_slice);
+                    for character in &buffer[..read] {
+                        let hooked = LoadingHandler::hook_intermediary_stdin_chars(character, &mut in_buf_lock);
+                        if !hooked { in_buf_lock.push(*character as char); } 
+                    }
+
                 }
                 thread::sleep(Duration::from_millis(2));
             }
         });
+    }
+
+    // Return true if char has been hooked, and therefore should not be pushed to the stdin buffer
+    fn hook_intermediary_stdin_chars(character: &u8, buffer_locked: &mut MutexGuard<'_, String>, ) -> bool {
+        match character {
+            0x08 => { // BACKSPACE
+                buffer_locked.pop(); return true;
+            }
+            0x17 => { // CTRL+BACKSPACE (formerly <End of Transmission Block> ETB)
+                let len = buffer_locked.rfind(
+                    |c: char| -> bool {
+                        match c {
+                            ' ' | '=' | ':' => true,
+                            _ => false
+                        }
+                    }
+                ).unwrap_or(0);
+                buffer_locked.truncate(len);
+                return true;
+            }
+            _ => { return false; }
+        }
     }
 
     fn handle_static_input_commands(input_buffer: &[u8]) {
