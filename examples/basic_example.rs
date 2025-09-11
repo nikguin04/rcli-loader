@@ -1,4 +1,4 @@
-use std::{ops::DerefMut, sync::{Arc, RwLock}, time::Duration};
+use std::{ops::DerefMut, sync::{Arc, RwLock}, thread, time::Duration};
 use humansize::{format_size, DECIMAL};
 
 mod modules;
@@ -41,9 +41,21 @@ async fn main() {
     spawn_loader_engine();
     
     sleep(Duration::from_millis(2000)).await;
-    let mut stdin_handler = STDIN_HANDLER.lock().unwrap();
-    let input = stdin_handler.get_input(String::from("Give me a banana"));
-    rcli_print(input.unwrap_or(String::from("default")));
+    thread::spawn(|| { // Get some random input here
+        let mut stdin_handler = STDIN_HANDLER.lock().unwrap();
+        let input = stdin_handler.get_input(String::from("Give me a banana: "));
+        match input {
+            Ok (input) =>  {
+                if input.to_lowercase().contains("banana") {
+                    rcli_print(String::from("Thanks for the banana!"));
+                } else {
+                    rcli_print(String::from("I did not get a banana!"));
+                }
+            }
+            Err(_) => {rcli_print(String::from("Error getting input"));}
+        } 
+    });
+    
     while (true) {
         sleep(Duration::from_millis(100)).await;
     }

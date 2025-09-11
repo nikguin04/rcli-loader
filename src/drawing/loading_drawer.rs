@@ -136,10 +136,16 @@ impl LoadingDrawer {
 
 
     pub fn draw_input_field(&self, element: &DrawableElement, data: &mut LoadingData, _offset: usize) -> usize {
-        let offset = match element.pos { Position::BOTTOM => _offset - 2, Position::TOP => _offset };
+        let offset = match element.pos { Position::BOTTOM => _offset - 1, Position::TOP => _offset };
         set_terminal_pos(V2Usz { x: 0, y: offset });
-        print!("Please input following: XYZ\x1b[0K\nHere goes the input: {}\x1b[5m_\x1b[25m\x1b[0K", data.stdin_buffer.lock().unwrap()); // Print blinking _, and always clear rest of line when making a new line
+        let stdin_future = data.stdin_input_future_state.lock().unwrap();
+        let input_wanted: String = match &*stdin_future {
+            Some (x) => x.lock().unwrap().input_wanted.clone(),
+            None => String::new()
+        };
+        drop(stdin_future); // Drop future as we dont need it anymore, and printing can take some valuable time
+        print!("{}{}\x1b[5m_\x1b[25m\x1b[0K", input_wanted, data.stdin_buffer.lock().unwrap()); // Print blinking _, and always clear rest of line when making a new line
         stdout().flush().unwrap(); // Flush all text
-        return 2;
+        return 1; // TODO: Perhaps also plus any newlines given by the stdin input furute here, and remember the offset
     }
 }

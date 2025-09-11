@@ -116,17 +116,15 @@ impl StdinHandler {
     // TODO:  Make cfg e_tokio
     pub fn get_input(&mut self, input_wanted: String) -> Result<String, &'static str> {
         let future = StdinFuture::new(input_wanted);
-        match &self.stdin_input_future_state.lock().unwrap().into() {
-            Some(_x) => {
-                rcli_print(String::from("Error getting input, another input request already exists! returning empty string"));
-                return Err("")
-            }
-            None => {
-                // TODO: use input
-                *(self.stdin_input_future_state.lock().unwrap()) = Some(future.state.clone()); // This is synced with loading handlers stdin tick
-            }
+        let stdin_future_occupied: bool = match &*self.stdin_input_future_state.lock().unwrap() { None => false, Some(_) => true };
+        if stdin_future_occupied {
+            rcli_print(String::from("Error getting input, another input request already exists! returning empty string"));
+            return Err("")
+        } else {
+            // TODO: use input
+            *(self.stdin_input_future_state.lock().unwrap()) = Some(future.state.clone()); // This is synced with loading handlers stdin tick
         }
-        
+    
         
         let result: String = Runtime::new().unwrap().block_on::<StdinFuture>(future);
         return Ok(result)
@@ -139,7 +137,7 @@ pub struct StdinFuture {
 pub struct StdinState {
     stdin_str: Option<String>, // Stdin_str is provided by the handle_stdin_tick, is none, no input yet, otherwise, we have input
     waker: Option<Waker>,
-    input_wanted: String
+    pub input_wanted: String
 }
 
 impl StdinFuture {
