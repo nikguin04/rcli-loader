@@ -43,7 +43,7 @@ async fn main() {
     sleep(Duration::from_millis(2000)).await;
     thread::spawn(|| { // Get some random input here
         let mut stdin_handler = STDIN_HANDLER.lock().unwrap();
-        let input = stdin_handler.get_input(String::from("Give me a banana: "));
+        let input = stdin_handler.get_input_blocking(String::from("Give me a banana: "));
         match input {
             Ok (input) =>  {
                 if input.to_lowercase().contains("banana") {

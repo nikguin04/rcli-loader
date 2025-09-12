@@ -1,5 +1,5 @@
 
-use std::{fmt::Debug, io::{stdin, Read, Stdin}, ops::Deref, pin::Pin, process::exit, sync::{Arc, Mutex, MutexGuard}, task::{Context, Poll, Waker}, thread, time::Duration};
+use std::{fmt::Debug, future, io::{stdin, Read, Stdin}, ops::Deref, pin::Pin, process::exit, sync::{Arc, Mutex, MutexGuard}, task::{Context, Poll, Waker}, thread::{self, sleep, Thread}, time::Duration};
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use tokio::runtime::Runtime;
 use crate::engine::{loading_handler::{rcli_print, LoadingHandler}};
@@ -72,20 +72,33 @@ impl LoadingHandler {
     pub fn handle_stdin_tick(&mut self) {
         let bufclone = self.data.stdin_buffer.clone();
         let mut stdin_buffer = bufclone.lock().unwrap();
-        // println!("{:?}", stdin_buffer.as_bytes());
         let split: Vec<&str> = stdin_buffer.split(|c| c == '\r').collect(); // Split as carriage return, it seems raw terminal mode prints \r instead of \n
-        // println!("{:?}", split);
         if split.len() == 1 { // In this case, no newline/enter is present, we will return as user does not want to execute any command yet
             return;
         }
         
-        let last: String = split.last().unwrap().to_string(); // Need to duplicate the last element to drop split (minor inefficiency)
         let returned_line = &split[..split.len()-1].get(0);
-        match returned_line {
+        let mut drain_len: Option<usize> = None;
+        match returned_line { 
             None => { return; }
             Some(line) => {
-                rcli_print(String::from(**line));
+                drain_len = Some(line.chars().count()+1); // WARNING might need a +1 beacuse of \r
+                rcli_print(String::from(**line)); // Temporary
+                let stdin_future = self.data.stdin_input_future_state.lock().unwrap();
+                match &*stdin_future {
+                    None => {}, // TODO: This should execute any regular commands
+                    Some(future) => {
+                        let mut futurelock = future.lock().unwrap();
+                        futurelock.stdin_str = Some(String::from(**line));
+                        if let Some(waker) = futurelock.waker.take() { // WARNING: This might break as i dont know the waker and take functionality, this might block anything else from acessing waker
+                            waker.wake();
+                        }
+                    }
+                };
             }
+        }
+        if let Some(drain_len) = drain_len { // This is not in the match as it would cause a mutable borrow after immutable borrow
+            stdin_buffer.drain(..drain_len);
         }
         // for elem in &split[..split.len()-1] {
         //     if elem.len() == 0 { continue; }
@@ -101,8 +114,7 @@ impl LoadingHandler {
         //     }
         // };
         
-        stdin_buffer.clear();
-        stdin_buffer.push_str(&last);
+        
     }
 
     
@@ -113,21 +125,56 @@ pub struct StdinHandler {
 }
 
 impl StdinHandler {
-    // TODO:  Make cfg e_tokio
-    pub fn get_input(&mut self, input_wanted: String) -> Result<String, &'static str> {
+    #[cfg(feature = "e_tokio")]
+    pub fn get_input_blocking(&mut self, input_wanted: String) -> Result<String, &'static str> {
+        let future = self.set_input_future_state(input_wanted);
+        match future {
+            Err(msg) => {rcli_print(String::from(msg)); return Err(msg)}
+            Ok(future) => {
+                let result: String = Runtime::new().unwrap().block_on::<StdinFuture>(future);
+                return Ok(result)
+            }
+        }
+        
+        
+    }
+    pub fn get_input_polling(&mut self, input_wanted: String) -> Result<String, &'static str> {
+        let future = self.set_input_future_state(input_wanted);
+        match future {
+            Err(msg) => {rcli_print(String::from(msg)); return Err(msg)}
+            Ok(future) => {
+                let result: Option<String> = None;
+                loop {
+                    let lock = future.state.try_lock();
+                    match lock {
+                        Err(_) => {  }
+                        Ok(lock) => {
+                            match &lock.stdin_str {
+                                None => {  }
+                                Some(result) => {
+                                    return Ok(result.clone())
+                                }
+                            }
+                        }
+                    }
+                    sleep(Duration::from_millis(20));
+                }
+            }
+        }
+        
+        
+    }
+    fn set_input_future_state(&mut self, input_wanted: String) -> Result<StdinFuture, &'static str> {
         let future = StdinFuture::new(input_wanted);
         let stdin_future_occupied: bool = match &*self.stdin_input_future_state.lock().unwrap() { None => false, Some(_) => true };
         if stdin_future_occupied {
-            rcli_print(String::from("Error getting input, another input request already exists! returning empty string"));
-            return Err("")
+            return Err("Error getting input, another input request already exists!")
         } else {
             // TODO: use input
             *(self.stdin_input_future_state.lock().unwrap()) = Some(future.state.clone()); // This is synced with loading handlers stdin tick
+            return Ok(future)
         }
-    
         
-        let result: String = Runtime::new().unwrap().block_on::<StdinFuture>(future);
-        return Ok(result)
     }
 }
 
