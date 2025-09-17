@@ -100,20 +100,6 @@ impl LoadingHandler {
         if let Some(drain_len) = drain_len { // This is not in the match as it would cause a mutable borrow after immutable borrow
             stdin_buffer.drain(..drain_len);
         }
-        // for elem in &split[..split.len()-1] {
-        //     if elem.len() == 0 { continue; }
-        //     let mut split_ws = elem.split_whitespace();
-        //     let first = split_ws.next().unwrap();
-        //     match first {
-        //         "test" => {
-        //             let mut fmt = String::new();
-        //             split_ws.for_each( |e| { fmt.push_str(format!("{}, ", e).as_str())}); // Note: Here this first element (command) should already be skipped
-        //             rcli_print(format!("Executed the test command! {:?}", fmt ))
-        //         },
-        //         _ => { rcli_print(format!("Command not found: {}", first.to_string())); }
-        //     }
-        // };
-        
         
     }
 
@@ -132,6 +118,7 @@ impl StdinHandler {
             Err(msg) => {rcli_print(String::from(msg)); return Err(msg)}
             Ok(future) => {
                 let result: String = Runtime::new().unwrap().block_on::<StdinFuture>(future);
+                self.clear_input_future_state().unwrap();
                 return Ok(result)
             }
         }
@@ -152,6 +139,7 @@ impl StdinHandler {
                             match &lock.stdin_str {
                                 None => {  }
                                 Some(result) => {
+                                    self.clear_input_future_state().unwrap();
                                     return Ok(result.clone())
                                 }
                             }
@@ -176,6 +164,11 @@ impl StdinHandler {
         }
         
     }
+
+    fn clear_input_future_state(&mut self) -> Result<(), &'static str> {
+        *(self.stdin_input_future_state.lock().unwrap()) = None; // This is synced with loading handlers stdin tick
+        return Ok(());
+    }   
 }
 
 pub struct StdinFuture {
