@@ -143,9 +143,17 @@ impl LoadingDrawer {
         };
         drop(stdin_future); // Drop future as we dont need it anymore, and printing can take some valuable time
         //print!("{}{}\x1b[5m_\x1b[25m\x1b[0K", input_wanted, data.stdin_buffer.lock().unwrap()); // Print blinking _, and always clear rest of line when making a new line
-        print!("{}{}\x1b[7m \x1b[27m\x1b[0K", input_wanted, data.stdin_buffer.lock().unwrap()); // always clear rest of line when making a new line
+        let cursor = *data.stdin_cursor_pos_absolut.read().unwrap();
+        
+        let stdin_buffer = data.stdin_buffer.lock().unwrap();
+        print!("{}{}\x1b[7m{}\x1b[27m{}\x1b[0K",  // always clear rest of line when making a new line, 7m is inverse, 27m is reset inverse
+            input_wanted,
+            if cursor > 0 { &stdin_buffer[..cursor] } else { "" },
+            &stdin_buffer.chars().nth(cursor).unwrap_or(' '),
+            if cursor < stdin_buffer.len() { &stdin_buffer[cursor+1..] } else { "" }
+        );
+
         set_terminal_pos(V2Usz { x: 20, y: offset });
-        //stdout().flush().unwrap(); // Flush all text
         return 1; // TODO: Perhaps also plus any newlines given by the stdin input furute here, and remember the offset
     }
 }

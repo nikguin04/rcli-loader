@@ -3,7 +3,7 @@ use std::{pin::Pin, process::exit, sync::{Arc, Mutex, MutexGuard}, task::{Contex
 use crossterm::{event::KeyModifiers, terminal::{disable_raw_mode, enable_raw_mode}};
 use crossterm::event::{self, Event, KeyCode};
 use tokio::runtime::Runtime;
-use crate::engine::{loading_handler::{rcli_print, LoadingHandler}};
+use crate::{engine::loading_handler::{LoadingHandler, rcli_print}, tools::stdin_tools::relative_position_in_bounds};
 use std::future::Future;
 
 impl LoadingHandler {
@@ -11,6 +11,7 @@ impl LoadingHandler {
     pub fn start_stdin_engine(&mut self) {
         let stdin_buffer: Arc<Mutex<String>> = self.data.stdin_buffer.clone();
         let stdin_future = self.data.stdin_input_future_state.clone();
+        let stdin_cursor_pos_absolut = self.data.stdin_cursor_pos_absolut.clone();
         thread::spawn(move || {
             loop {
                 if event::poll(Duration::from_millis(50)).unwrap() { // Poll for any arrow keys pressed TODO: Make this blocking and polling!
@@ -19,13 +20,18 @@ impl LoadingHandler {
                         let ctrl_press = key_event.modifiers.contains(KeyModifiers::CONTROL);
                         if key_event.is_release() { continue; } // Dont handle releases
                         match key_event.code {
-                            KeyCode::Left => rcli_print(String::from("Left")),
-                            KeyCode::Right => rcli_print(String::from("Right")),
+                            KeyCode::Left => {
+                                let mut cursor = stdin_cursor_pos_absolut.write().unwrap();
+                                if relative_position_in_bounds(in_buf_lock.len(),*cursor,-1) { *cursor -= 1 }
+                            },
+                            KeyCode::Right =>  {
+                                let mut cursor = stdin_cursor_pos_absolut.write().unwrap();
+                                if relative_position_in_bounds(in_buf_lock.len(),*cursor,1) { *cursor += 1 }
+                            }
                             KeyCode::Backspace =>  {
                                 LoadingHandler::handle_backspace(&mut in_buf_lock, ctrl_press);
                             },
                             KeyCode::Enter => {
-                                // TODO: Pop event
                                 //let stdin_future = self.data.stdin_input_future_state.lock().unwrap();
                                 let stdin_future_lock = stdin_future.lock().unwrap();
                                 match &*stdin_future_lock {
@@ -40,6 +46,7 @@ impl LoadingHandler {
                                         }
                                     }
                                 };
+                                *stdin_cursor_pos_absolut.write().unwrap() = 0; // Reset cursor position
                                 in_buf_lock.clear();
                             },
                             KeyCode::Char(c) => { // Add character to buffer
@@ -47,8 +54,10 @@ impl LoadingHandler {
                                     println!("Ctrl-C pressed, exiting");
                                     exit(0);
                                 }
+                                let mut cursor = stdin_cursor_pos_absolut.write().unwrap();
 
-                                in_buf_lock.push(c);
+                                in_buf_lock.insert(*cursor, c);
+                                *cursor += 1;
                             }
                             _ => {},
                         }

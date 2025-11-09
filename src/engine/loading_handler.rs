@@ -22,7 +22,7 @@ lazy_static! {
             stdin_enabled: true,
             stdin_buffer: Arc::from(Mutex::from(String::new())),
             stdin_input_future_state: MutStdinStateRef.clone(),
-            stdin_cursor_pos_absolut: 0
+            stdin_cursor_pos_absolut: Arc::from(RwLock::from(0))
         },
         LoadingDrawer::default()
     ));
