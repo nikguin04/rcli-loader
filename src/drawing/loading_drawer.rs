@@ -41,6 +41,7 @@ impl LoadingDrawer {
         let top = *self.used_lines.get(&Position::TOP).unwrap();
         let bot = *self.used_lines.get(&Position::BOTTOM).unwrap();
         let _lines_used = (self.draw_ordering.fill_element.draw)(self, &(self.draw_ordering.fill_element), data, top, terminal_size.y-top-bot-1); // WARNING: This can cause a usize negative (crash)
+        stdout().flush().unwrap();
         
     }
 
@@ -79,7 +80,7 @@ impl LoadingDrawer {
                 };
             };
 
-            stdout().flush().unwrap();
+            //stdout().flush().unwrap();
             return remaining_height;
         }
 
@@ -125,12 +126,9 @@ impl LoadingDrawer {
                 Some(x) => print!("{col_start}{endchar:\u{2588}>fillchar_len$}\x1b[0m",  endchar = endchar, fillchar_len = fillchar_len, col_start = x.get_char_block_color(&elem_l))
             }
             
-            //rcli_print!("test\n{}", "123");
-            
-
             print!("\x1B[0K"); // Erase from cursor to end of line (Only necessary when whole line is not written!)
         }
-        stdout().flush().unwrap(); // Flush all commands, since no new line is written
+        //stdout().flush().unwrap(); // Flush all commands, since no new line is written
         return data.list.len(); // TODO: Fix this length when truncating due to lack of space
     }
 
@@ -144,8 +142,10 @@ impl LoadingDrawer {
             None => String::new()
         };
         drop(stdin_future); // Drop future as we dont need it anymore, and printing can take some valuable time
-        print!("{}{}\x1b[5m_\x1b[25m\x1b[0K", input_wanted, data.stdin_buffer.lock().unwrap()); // Print blinking _, and always clear rest of line when making a new line
-        stdout().flush().unwrap(); // Flush all text
+        //print!("{}{}\x1b[5m_\x1b[25m\x1b[0K", input_wanted, data.stdin_buffer.lock().unwrap()); // Print blinking _, and always clear rest of line when making a new line
+        print!("{}{}\x1b[7m \x1b[27m\x1b[0K", input_wanted, data.stdin_buffer.lock().unwrap()); // always clear rest of line when making a new line
+        set_terminal_pos(V2Usz { x: 20, y: offset });
+        //stdout().flush().unwrap(); // Flush all text
         return 1; // TODO: Perhaps also plus any newlines given by the stdin input furute here, and remember the offset
     }
 }

@@ -1,5 +1,5 @@
 
-use std::{fmt::Debug, future, io::{stdin, Read, Stdin}, ops::Deref, pin::Pin, process::exit, sync::{Arc, Mutex, MutexGuard}, task::{Context, Poll, Waker}, thread::{self, sleep, Thread}, time::Duration};
+use std::{io::{stdin, Read}, pin::Pin, process::exit, sync::{Arc, Mutex, MutexGuard}, task::{Context, Poll, Waker}, thread::{self, sleep}, time::Duration};
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use tokio::runtime::Runtime;
 use crate::engine::{loading_handler::{rcli_print, LoadingHandler}};
@@ -78,11 +78,11 @@ impl LoadingHandler {
         }
         
         let returned_line = &split[..split.len()-1].get(0);
-        let mut drain_len: Option<usize> = None;
+        let mut _drain_len: Option<usize> = None; // This produces a "unused" warning, hence the underscore
         match returned_line { 
             None => { return; }
             Some(line) => {
-                drain_len = Some(line.chars().count()+1); // WARNING might need a +1 beacuse of \r
+                _drain_len = Some(line.chars().count()+1); // WARNING might need a +1 beacuse of \r
                 rcli_print(String::from(**line)); // Temporary
                 let stdin_future = self.data.stdin_input_future_state.lock().unwrap();
                 match &*stdin_future {
@@ -97,8 +97,11 @@ impl LoadingHandler {
                 };
             }
         }
-        if let Some(drain_len) = drain_len { // This is not in the match as it would cause a mutable borrow after immutable borrow
-            stdin_buffer.drain(..drain_len);
+        match _drain_len { // This is not in the match as it would cause a mutable borrow after immutable borrow
+            Some(_drain_len) => {
+                stdin_buffer.drain(.._drain_len);    
+            }
+            _ => {}
         }
         
     }
@@ -130,7 +133,6 @@ impl StdinHandler {
         match future {
             Err(msg) => {rcli_print(String::from(msg)); return Err(msg)}
             Ok(future) => {
-                let result: Option<String> = None;
                 loop {
                     let lock = future.state.try_lock();
                     match lock {

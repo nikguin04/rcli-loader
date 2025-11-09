@@ -1,13 +1,13 @@
 
 
-use std::{collections::VecDeque, io::Stdin, sync::{Arc, Mutex, RwLock}, thread::{self}, time::Duration};
+use std::{collections::VecDeque, sync::{Arc, Mutex, RwLock}, thread::{self}, time::Duration};
 
 use lazy_static::lazy_static;
 
 #[cfg(feature = "e_tokio")]
 use tokio::{task::JoinHandle, time::sleep};
 
-use crate::{drawing::loading_drawer::LoadingDrawer, engine::stdin_handler::{StdinHandler, StdinState}, structure::{loading_data::LoadingData, loading_element::LoadingElement}};
+use crate::{drawing::{drawer_helper::hide_cursor, loading_drawer::LoadingDrawer}, engine::stdin_handler::{StdinHandler, StdinState}, structure::{loading_data::LoadingData, loading_element::LoadingElement}};
 
 
 lazy_static! {
@@ -50,6 +50,7 @@ impl LoadingHandler {
 
     fn init(&mut self) {
         self.set_stdin_mode(self.data.stdin_enabled); // Trigger the stdin raw mode (or not)
+        hide_cursor(); // Hide default terminal cursor as it will jump around
     }
 }
 

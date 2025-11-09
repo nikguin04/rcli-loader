@@ -1,8 +1,8 @@
-use std::{ops::DerefMut, sync::{Arc, RwLock}, thread, time::Duration};
+use std::{sync::{Arc, RwLock}, thread, time::Duration};
 use humansize::{format_size, DECIMAL};
 
 mod modules;
-use rcli_loader::{drawing::drawer_helper::{erase_screen, hide_cursor, RedGreenScheme}, engine::loading_handler::{rcli_print, spawn_loader_engine, LOADING_HANDLER, STDIN_HANDLER}, structure::loading_element::LoadingElement};
+use rcli_loader::{drawing::drawer_helper::{erase_screen, RedGreenScheme}, engine::loading_handler::{rcli_print, spawn_loader_engine, LOADING_HANDLER, STDIN_HANDLER}, structure::loading_element::LoadingElement};
 use tokio::time::sleep;
 
 use crate::modules::{example_download::sim_download, example_load::sim_load};
@@ -10,7 +10,6 @@ use crate::modules::{example_download::sim_download, example_load::sim_load};
 #[tokio::main]
 async fn main() {
     erase_screen();
-    hide_cursor();
     
     let mut handler = LOADING_HANDLER.lock().unwrap();
     //let mut drawer = handler.drawer;
@@ -56,7 +55,7 @@ async fn main() {
         } 
     });
     
-    while (true) {
+    loop {
         sleep(Duration::from_millis(100)).await;
     }
     
