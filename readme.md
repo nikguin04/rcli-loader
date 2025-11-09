@@ -95,7 +95,7 @@ Even more features are coming, and feature requests are welcome: read <a href="#
 
 * [![Rust][Rust]][Rust-url]
 
-Built with pure rust, and a minimal amount of dependencies, to keep the crate as lightweight as possible. Currently the bare mininmum crate tree size is only 4. Tree size quickly goes up when using optional dependencies for running the example, such as tokio, reqwest, and humansize. These three crate make the crate tree size shoot up to 239.
+Built with pure rust, and a minimal amount of dependencies, to keep the crate as lightweight as possible. Crates are only used when strictly needed, e.g. getting terminal size, which is OS implementation specific. Tree size quickly goes up when using optional dependencies for running the example, such as tokio, reqwest, and humansize. These three crate make the crate tree size shoot up to about 235 extra dependencies.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

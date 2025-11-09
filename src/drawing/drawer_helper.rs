@@ -1,4 +1,6 @@
-use crate::{loading_element::LoadingElement, terminal_helper::V2Usz};
+use crate::{structure::loading_element::LoadingElement, drawing::terminal_helper::V2Usz};
+
+#[derive(Copy, Clone, Hash, PartialEq, Eq)]
 pub enum Position {
     TOP,BOTTOM
 }
@@ -24,14 +26,23 @@ impl LoadingColorScheme for BlueScheme {
 
 // TODO: This might work more effectively as a macro
 pub fn set_terminal_pos(pos: V2Usz) {
-    print!("\x1B[{line};{column}H", column = pos.x as usize, line = pos.y as usize);
+    print!("\x1B[{line};{column}H", column = pos.x as usize, line = pos.y as usize + 1);
 }
 
 // Note: Does not flush stdout
 // Prints Unicode U+2500 '─'
 pub fn print_splitter_line(terminal_size: &V2Usz, offset_height: usize) {
     set_terminal_pos(V2Usz { x: 0, y: offset_height }); // Set proper positioning
-    print!("{end:\u{2500}>times$}", end="", times=terminal_size.x as usize); // Print 
+    print!("{end:\u{2500}>times$}", end="", times=terminal_size.x as usize); // Print
+    //stdout().flush().unwrap();
 }
 
-
+pub fn erase_screen() { // Usually to be used at init
+    println!("\x1B[2J");
+}
+pub fn hide_cursor() { // Implementation specific for consoles, might not work
+    println!("\x1b[?25l");
+}
+pub fn show_cursor() { // Implementation specific for consoles, might not work
+    println!("\x1b[?25h");
+}
