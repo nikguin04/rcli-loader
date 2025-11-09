@@ -1,6 +1,7 @@
 
 use std::{io::{stdin, Read}, pin::Pin, process::exit, sync::{Arc, Mutex, MutexGuard}, task::{Context, Poll, Waker}, thread::{self, sleep}, time::Duration};
-use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
+use crossterm::{event::KeyModifiers, terminal::{disable_raw_mode, enable_raw_mode}};
+use crossterm::event::{self, Event, KeyCode};
 use tokio::runtime::Runtime;
 use crate::engine::{loading_handler::{rcli_print, LoadingHandler}};
 use std::future::Future;
@@ -11,54 +12,54 @@ impl LoadingHandler {
         let stdin_buffer: Arc<Mutex<String>> = self.data.stdin_buffer.clone();
         thread::spawn(move || {
             loop {
-                let mut stdin = stdin().lock();
-                let mut buffer = [0; 512];
-                let mut read: usize;
-                loop {
-                    read = stdin.read(&mut buffer[..]).unwrap_or(0);
-                    if read == 0 { break; }
-                    let mut in_buf_lock = stdin_buffer.lock().unwrap();
-                    let buffer_slice = &buffer[..read];
-                    LoadingHandler::handle_static_input_commands(buffer_slice);
-                    for character in &buffer[..read] {
-                        let hooked = LoadingHandler::hook_intermediary_stdin_chars(character, &mut in_buf_lock);
-                        if !hooked { in_buf_lock.push(*character as char); } 
-                    }
+                if event::poll(Duration::from_millis(50)).unwrap() { // Poll for any arrow keys pressed TODO: Make this blocking and polling!
+                    if let Event::Key(key_event) = event::read().unwrap() {
+                        let mut in_buf_lock = stdin_buffer.lock().unwrap();
+                        let ctrl_press = key_event.modifiers.contains(KeyModifiers::CONTROL);
+                        if key_event.is_release() { continue; } // Dont handle releases
+                        match key_event.code {
+                            KeyCode::Left => rcli_print(String::from("Left")),
+                            KeyCode::Right => rcli_print(String::from("Right")),
+                            KeyCode::Backspace =>  {
+                                LoadingHandler::handle_backspace(&mut in_buf_lock, ctrl_press);
+                            },
+                            KeyCode::Enter => {
+                                // TODO: Pop event
+                            },
+                            KeyCode::Char(c) => { // Add character to buffer
+                                if ctrl_press && c == 'c' { // Special case for handling CTRL+C for exiting
+                                    println!("Ctrl-C pressed, exiting");
+                                    exit(0);
+                                }
 
+                                in_buf_lock.push(c);
+                            }
+                            _ => {},
+                        }
+                    } 
                 }
+
                 thread::sleep(Duration::from_millis(2));
             }
         });
     }
 
-    // Return true if char has been hooked, and therefore should not be pushed to the stdin buffer
-    fn hook_intermediary_stdin_chars(character: &u8, buffer_locked: &mut MutexGuard<'_, String>, ) -> bool {
-        match character {
-            0x08 => { // BACKSPACE
-                buffer_locked.pop(); return true;
-            }
-            0x17 => { // CTRL+BACKSPACE (formerly <End of Transmission Block> ETB)
-                let len = buffer_locked.rfind(
-                    |c: char| -> bool {
-                        match c {
-                            ' ' | '=' | ':' => true,
-                            _ => false
-                        }
+    fn handle_backspace(in_buffer_locked: &mut MutexGuard<'_, String>, ctrl_press: bool) {
+        if !ctrl_press {
+            in_buffer_locked.pop();
+        } else {
+            let len = in_buffer_locked.rfind(
+                |c: char| -> bool {
+                    match c {
+                        ' ' | '=' | ':' => true,
+                        _ => false
                     }
-                ).unwrap_or(0);
-                buffer_locked.truncate(len);
-                return true;
-            }
-            _ => { return false; }
+                }
+            ).unwrap_or(0);
+            in_buffer_locked.truncate(len);
         }
     }
 
-    fn handle_static_input_commands(input_buffer: &[u8]) {
-        if input_buffer.contains(&0x03) { // Contains Ctrl-C
-            println!("Ctrl-C pressed, exiting");
-            exit(0);
-        }
-    }
 
     pub fn set_stdin_mode(&mut self, enabled: bool) {
         if enabled { // TODO: handle panic

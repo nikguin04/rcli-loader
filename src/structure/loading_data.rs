@@ -11,7 +11,8 @@ pub struct LoadingData {
     pub max_history: usize,
     pub stdin_enabled: bool,
     pub stdin_buffer: Arc<Mutex<String>>,
-    pub stdin_input_future_state: Arc<Mutex<Option<Arc<Mutex<StdinState>>>>> // Same as StdinHandler
+    pub stdin_input_future_state: Arc<Mutex<Option<Arc<Mutex<StdinState>>>>>, // Same as StdinHandler
+    pub stdin_cursor_pos_absolut: usize
 }
 
 impl LoadingData {

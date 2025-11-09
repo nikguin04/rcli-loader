@@ -21,7 +21,8 @@ lazy_static! {
             max_history: 50, // TODO: Make setter
             stdin_enabled: true,
             stdin_buffer: Arc::from(Mutex::from(String::new())),
-            stdin_input_future_state: MutStdinStateRef.clone()
+            stdin_input_future_state: MutStdinStateRef.clone(),
+            stdin_cursor_pos_absolut: 0
         },
         LoadingDrawer::default()
     ));
