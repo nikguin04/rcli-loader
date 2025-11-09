@@ -1,5 +1,5 @@
 
-use std::{io::{stdin, Read}, pin::Pin, process::exit, sync::{Arc, Mutex, MutexGuard}, task::{Context, Poll, Waker}, thread::{self, sleep}, time::Duration};
+use std::{pin::Pin, process::exit, sync::{Arc, Mutex, MutexGuard}, task::{Context, Poll, Waker}, thread::{self, sleep}, time::Duration};
 use crossterm::{event::KeyModifiers, terminal::{disable_raw_mode, enable_raw_mode}};
 use crossterm::event::{self, Event, KeyCode};
 use tokio::runtime::Runtime;
@@ -10,6 +10,7 @@ impl LoadingHandler {
     
     pub fn start_stdin_engine(&mut self) {
         let stdin_buffer: Arc<Mutex<String>> = self.data.stdin_buffer.clone();
+        let stdin_future = self.data.stdin_input_future_state.clone();
         thread::spawn(move || {
             loop {
                 if event::poll(Duration::from_millis(50)).unwrap() { // Poll for any arrow keys pressed TODO: Make this blocking and polling!
@@ -25,6 +26,21 @@ impl LoadingHandler {
                             },
                             KeyCode::Enter => {
                                 // TODO: Pop event
+                                //let stdin_future = self.data.stdin_input_future_state.lock().unwrap();
+                                let stdin_future_lock = stdin_future.lock().unwrap();
+                                match &*stdin_future_lock {
+                                    None => { // TODO: This should execute any regular commands, temporarily just prints the line again
+                                        rcli_print(String::from(in_buf_lock.as_str()));
+                                    }, 
+                                    Some(future) => {
+                                        let mut futurelock = future.lock().unwrap();
+                                        futurelock.stdin_str = Some(String::from(in_buf_lock.as_str()));
+                                        if let Some(waker) = futurelock.waker.take() { // WARNING: This might break as i dont know the waker and take functionality, this might block anything else from acessing waker
+                                           waker.wake();
+                                        }
+                                    }
+                                };
+                                in_buf_lock.clear();
                             },
                             KeyCode::Char(c) => { // Add character to buffer
                                 if ctrl_press && c == 'c' { // Special case for handling CTRL+C for exiting
@@ -70,42 +86,6 @@ impl LoadingHandler {
         self.data.stdin_enabled = enabled;
     }
 
-    pub fn handle_stdin_tick(&mut self) {
-        let bufclone = self.data.stdin_buffer.clone();
-        let mut stdin_buffer = bufclone.lock().unwrap();
-        let split: Vec<&str> = stdin_buffer.split(|c| c == '\r').collect(); // Split as carriage return, it seems raw terminal mode prints \r instead of \n
-        if split.len() == 1 { // In this case, no newline/enter is present, we will return as user does not want to execute any command yet
-            return;
-        }
-        
-        let returned_line = &split[..split.len()-1].get(0);
-        let mut _drain_len: Option<usize> = None; // This produces a "unused" warning, hence the underscore
-        match returned_line { 
-            None => { return; }
-            Some(line) => {
-                _drain_len = Some(line.chars().count()+1); // WARNING might need a +1 beacuse of \r
-                rcli_print(String::from(**line)); // Temporary
-                let stdin_future = self.data.stdin_input_future_state.lock().unwrap();
-                match &*stdin_future {
-                    None => {}, // TODO: This should execute any regular commands
-                    Some(future) => {
-                        let mut futurelock = future.lock().unwrap();
-                        futurelock.stdin_str = Some(String::from(**line));
-                        if let Some(waker) = futurelock.waker.take() { // WARNING: This might break as i dont know the waker and take functionality, this might block anything else from acessing waker
-                            waker.wake();
-                        }
-                    }
-                };
-            }
-        }
-        match _drain_len { // This is not in the match as it would cause a mutable borrow after immutable borrow
-            Some(_drain_len) => {
-                stdin_buffer.drain(.._drain_len);    
-            }
-            _ => {}
-        }
-        
-    }
 
     
 }
