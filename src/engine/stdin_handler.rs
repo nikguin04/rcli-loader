@@ -29,7 +29,9 @@ impl LoadingHandler {
                                 if relative_position_in_bounds(in_buf_lock.len(),*cursor,1) { *cursor += 1 }
                             }
                             KeyCode::Backspace =>  {
-                                LoadingHandler::handle_backspace(&mut in_buf_lock, ctrl_press);
+                                let mut cursor = stdin_cursor_pos_absolut.write().unwrap();
+                                let removed = LoadingHandler::handle_backspace(&mut in_buf_lock, ctrl_press);
+                                *cursor -= removed;
                             },
                             KeyCode::Enter => {
                                 //let stdin_future = self.data.stdin_input_future_state.lock().unwrap();
@@ -69,11 +71,17 @@ impl LoadingHandler {
         });
     }
 
-    fn handle_backspace(in_buffer_locked: &mut MutexGuard<'_, String>, ctrl_press: bool) {
+    // Returns how many characters were removed/truncated.
+    fn handle_backspace(in_buffer_locked: &mut MutexGuard<'_, String>, ctrl_press: bool) -> usize {
+        if in_buffer_locked.len() == 0 {
+            return 0;
+        }
+
         if !ctrl_press {
             in_buffer_locked.pop();
+            return 1;
         } else {
-            let len = in_buffer_locked.rfind(
+            let index = in_buffer_locked.rfind(
                 |c: char| -> bool {
                     match c {
                         ' ' | '=' | ':' => true,
@@ -81,8 +89,11 @@ impl LoadingHandler {
                     }
                 }
             ).unwrap_or(0);
-            in_buffer_locked.truncate(len);
+            let new_len: usize = in_buffer_locked.len() - index;
+            in_buffer_locked.truncate(index);
+            return new_len;
         }
+
     }
 
 
@@ -137,7 +148,7 @@ impl StdinHandler {
                             }
                         }
                     }
-                    sleep(Duration::from_millis(20));
+                    sleep(Duration::from_millis(10));
                 }
             }
         }
