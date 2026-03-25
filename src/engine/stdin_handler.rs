@@ -1,0 +1,215 @@
+
+use std::{pin::Pin, process::exit, sync::{Arc, Mutex, MutexGuard}, task::{Context, Poll, Waker}, thread::{self, sleep}, time::Duration};
+use crossterm::{event::KeyModifiers, terminal::{disable_raw_mode, enable_raw_mode}};
+use crossterm::event::{self, Event, KeyCode};
+use tokio::runtime::Runtime;
+use crate::{engine::loading_handler::{LoadingHandler, rcli_print}, tools::stdin_tools::relative_position_in_bounds};
+use std::future::Future;
+
+impl LoadingHandler {
+    
+    pub fn start_stdin_engine(&mut self) {
+        let stdin_buffer: Arc<Mutex<String>> = self.data.stdin_buffer.clone();
+        let stdin_future = self.data.stdin_input_future_state.clone();
+        let stdin_cursor_pos_absolut = self.data.stdin_cursor_pos_absolut.clone();
+        thread::spawn(move || {
+            loop {
+                if event::poll(Duration::from_millis(50)).unwrap() { // Poll for any arrow keys pressed TODO: Make this blocking and polling!
+                    if let Event::Key(key_event) = event::read().unwrap() {
+                        let mut in_buf_lock = stdin_buffer.lock().unwrap();
+                        let ctrl_press = key_event.modifiers.contains(KeyModifiers::CONTROL);
+                        if key_event.is_release() { continue; } // Dont handle releases
+                        match key_event.code {
+                            KeyCode::Left => {
+                                let mut cursor = stdin_cursor_pos_absolut.write().unwrap();
+                                if relative_position_in_bounds(in_buf_lock.len(),*cursor,-1) { *cursor -= 1 }
+                            },
+                            KeyCode::Right =>  {
+                                let mut cursor = stdin_cursor_pos_absolut.write().unwrap();
+                                if relative_position_in_bounds(in_buf_lock.len(),*cursor,1) { *cursor += 1 }
+                            }
+                            KeyCode::Backspace =>  {
+                                let mut cursor = stdin_cursor_pos_absolut.write().unwrap();
+                                let removed = LoadingHandler::handle_backspace(&mut in_buf_lock, ctrl_press);
+                                *cursor -= removed;
+                            },
+                            KeyCode::Enter => {
+                                //let stdin_future = self.data.stdin_input_future_state.lock().unwrap();
+                                let stdin_future_lock = stdin_future.lock().unwrap();
+                                match &*stdin_future_lock {
+                                    None => { // TODO: This should execute any regular commands, temporarily just prints the line again
+                                        rcli_print(String::from(in_buf_lock.as_str()));
+                                    }, 
+                                    Some(future) => {
+                                        let mut futurelock = future.lock().unwrap();
+                                        futurelock.stdin_str = Some(String::from(in_buf_lock.as_str()));
+                                        if let Some(waker) = futurelock.waker.take() { // WARNING: This might break as i dont know the waker and take functionality, this might block anything else from acessing waker
+                                           waker.wake();
+                                        }
+                                    }
+                                };
+                                *stdin_cursor_pos_absolut.write().unwrap() = 0; // Reset cursor position
+                                in_buf_lock.clear();
+                            },
+                            KeyCode::Char(c) => { // Add character to buffer
+                                if ctrl_press && c == 'c' { // Special case for handling CTRL+C for exiting
+                                    println!("Ctrl-C pressed, exiting");
+                                    exit(0);
+                                }
+                                let mut cursor = stdin_cursor_pos_absolut.write().unwrap();
+                                if ctrl_press && c == 'w' { // Special case for handling CTRL+W which is sent from some terminals instead of CTRL+Backspace.
+                                    let removed = LoadingHandler::handle_backspace(&mut in_buf_lock, ctrl_press);
+                                    *cursor -= removed;
+                                    continue; // Skip rest of char handling as we already handled the ctrl+backspace functionality.
+                                }
+
+                                in_buf_lock.insert(*cursor, c);
+                                *cursor += 1;
+                            }
+                            _ => {},
+                        }
+                    } 
+                }
+
+                thread::sleep(Duration::from_millis(2));
+            }
+        });
+    }
+
+    // Returns how many characters were removed/truncated.
+    fn handle_backspace(in_buffer_locked: &mut MutexGuard<'_, String>, ctrl_press: bool) -> usize {
+        if in_buffer_locked.len() == 0 {
+            return 0;
+        }
+
+        if !ctrl_press {
+            in_buffer_locked.pop();
+            return 1;
+        } else {
+            let index = in_buffer_locked.rfind(
+                |c: char| -> bool {
+                    match c {
+                        ' ' | '=' | ':' => true,
+                        _ => false
+                    }
+                }
+            ).unwrap_or(0);
+            let new_len: usize = in_buffer_locked.len() - index;
+            in_buffer_locked.truncate(index);
+            return new_len;
+        }
+
+    }
+
+
+    pub fn set_stdin_mode(&mut self, enabled: bool) {
+        if enabled { // TODO: handle panic
+            enable_raw_mode().unwrap();
+        } else {
+            disable_raw_mode().unwrap();
+        }
+        self.data.stdin_enabled = enabled;
+    }
+
+
+    
+}
+
+pub struct StdinHandler {
+    pub stdin_input_future_state: Arc<Mutex<Option<Arc<Mutex<StdinState>>>>>, // Same as LoadingData
+}
+
+impl StdinHandler {
+    #[cfg(feature = "e_tokio")]
+    pub fn get_input_blocking(&mut self, input_wanted: String) -> Result<String, &'static str> {
+        let future = self.set_input_future_state(input_wanted);
+        match future {
+            Err(msg) => {rcli_print(String::from(msg)); return Err(msg)}
+            Ok(future) => {
+                let result: String = Runtime::new().unwrap().block_on::<StdinFuture>(future);
+                self.clear_input_future_state().unwrap();
+                return Ok(result)
+            }
+        }
+        
+        
+    }
+    pub fn get_input_polling(&mut self, input_wanted: String) -> Result<String, &'static str> {
+        let future = self.set_input_future_state(input_wanted);
+        match future {
+            Err(msg) => {rcli_print(String::from(msg)); return Err(msg)}
+            Ok(future) => {
+                loop {
+                    let lock = future.state.try_lock();
+                    match lock {
+                        Err(_) => {  }
+                        Ok(lock) => {
+                            match &lock.stdin_str {
+                                None => {  }
+                                Some(result) => {
+                                    self.clear_input_future_state().unwrap();
+                                    return Ok(result.clone())
+                                }
+                            }
+                        }
+                    }
+                    sleep(Duration::from_millis(10));
+                }
+            }
+        }
+        
+        
+    }
+    fn set_input_future_state(&mut self, input_wanted: String) -> Result<StdinFuture, &'static str> {
+        let future = StdinFuture::new(input_wanted);
+        let stdin_future_occupied: bool = match &*self.stdin_input_future_state.lock().unwrap() { None => false, Some(_) => true };
+        if stdin_future_occupied {
+            return Err("Error getting input, another input request already exists!")
+        } else {
+            // TODO: use input
+            *(self.stdin_input_future_state.lock().unwrap()) = Some(future.state.clone()); // This is synced with loading handlers stdin tick
+            return Ok(future)
+        }
+        
+    }
+
+    fn clear_input_future_state(&mut self) -> Result<(), &'static str> {
+        *(self.stdin_input_future_state.lock().unwrap()) = None; // This is synced with loading handlers stdin tick
+        return Ok(());
+    }   
+}
+
+pub struct StdinFuture {
+    state: Arc<Mutex<StdinState>>,
+}
+pub struct StdinState {
+    stdin_str: Option<String>, // Stdin_str is provided by the handle_stdin_tick, is none, no input yet, otherwise, we have input
+    waker: Option<Waker>,
+    pub input_wanted: String
+}
+
+impl StdinFuture {
+    pub fn new(input_wanted: String) -> StdinFuture {
+        StdinFuture {
+            state: Arc::from(Mutex::from(StdinState {
+                stdin_str: None, waker: None, input_wanted: input_wanted
+            }))
+        }
+    }
+}
+impl Future for StdinFuture {
+    type Output = String;
+
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        let mut state = self.state.lock().unwrap();
+        return match &state.stdin_str {
+            Some(input) => {
+                Poll::Ready(input.clone())
+            },
+            None => {
+                state.waker = Some(cx.waker().clone());
+                Poll::Pending
+            }
+        }
+    }
+}

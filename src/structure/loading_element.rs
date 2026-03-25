@@ -20,7 +20,7 @@ impl LoadingElement {
         return self.progress;
     }
     pub fn get_progress_decimal(&self) -> f64 {
-        return self.progress as f64 / self.max as f64;
+        return if self.max > 0 { self.progress as f64 / self.max as f64 } else { 0 as f64 };
     }
     pub fn get_max(&self) -> usize {
         return self.max;
