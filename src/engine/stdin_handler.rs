@@ -57,6 +57,11 @@ impl LoadingHandler {
                                     exit(0);
                                 }
                                 let mut cursor = stdin_cursor_pos_absolut.write().unwrap();
+                                if ctrl_press && c == 'w' { // Special case for handling CTRL+W which is sent from some terminals instead of CTRL+Backspace.
+                                    let removed = LoadingHandler::handle_backspace(&mut in_buf_lock, ctrl_press);
+                                    *cursor -= removed;
+                                    continue; // Skip rest of char handling as we already handled the ctrl+backspace functionality.
+                                }
 
                                 in_buf_lock.insert(*cursor, c);
                                 *cursor += 1;
